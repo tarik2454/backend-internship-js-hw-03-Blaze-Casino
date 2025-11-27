@@ -86,6 +86,10 @@ const updateUsername = async (req, res) => {
   const { _id } = req.user;
   const { username } = req.body;
 
+  if (!username?.trim()) {
+    throw HttpError(400, "Username is required");
+  }
+
   const updatedUser = await User.findByIdAndUpdate(
     _id,
     { username },
