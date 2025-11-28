@@ -47,10 +47,10 @@ const userUpdateSchema = Joi.object({
     "string.max": `"username" should have a maximum length of {#limit}`,
     "any.required": `"username" is a required field`,
   }),
-  balance: Joi.number().min(0).optional(),
-  totalWagered: Joi.number().min(0).optional(),
-  gamesPlayed: Joi.number().min(0).integer().optional(),
-  totalWon: Joi.number().min(0).optional(),
+  balance: Joi.number().optional(),
+  totalWagered: Joi.number().optional(),
+  gamesPlayed: Joi.number().integer().optional(),
+  totalWon: Joi.number().optional(),
 });
 
 module.exports = {
