@@ -25,6 +25,8 @@ authRouter.post(
 
 authRouter.get("/current", authenticate, authController.getCurrent);
 
+authRouter.get("/users", authenticate, authController.getAllUsers);
+
 authRouter.patch(
   "/update",
   authenticate,

@@ -112,6 +112,12 @@ const updateUser = async (req, res) => {
   res.json(updated);
 };
 
+const getAllUsers = async (req, res) => {
+  const users = await User.find({}, "username gamesPlayed balance");
+
+  res.json(users);
+};
+
 const signout = async (req, res) => {
   const { _id } = req.user;
   await User.findByIdAndUpdate(_id, { token: "" });
@@ -123,6 +129,7 @@ module.exports = {
   verify: ctrlWrapper(verify),
   signin: ctrlWrapper(signin),
   getCurrent: ctrlWrapper(getCurrent),
+  getAllUsers: ctrlWrapper(getAllUsers),
   updateUser: ctrlWrapper(updateUser),
   signout: ctrlWrapper(signout),
 };
