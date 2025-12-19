@@ -10,23 +10,7 @@ const app = express();
 const formatsLogger = app.get("env") === "development" ? "dev" : "short";
 
 app.use(logger(formatsLogger));
-
-const corsOptions = {
-  origin: function (
-    origin: string | undefined,
-    callback: (err: Error | null, allow?: boolean) => void
-  ) {
-    if (!origin) return callback(null, true);
-    callback(null, true);
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  exposedHeaders: ["Authorization"],
-};
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions));
-
+app.use(cors());
 app.use(express.json());
 app.use(express.static("public"));
 
