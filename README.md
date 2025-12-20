@@ -9,7 +9,7 @@ REST API для управления пользователями, аутент�
 - **MongoDB** (Mongoose) - база данных
 - **JWT** - токены для аутентификации
 - **bcryptjs** - хеширование паролей
-- **Joi** - валидация данных
+- **Zod** - валидация данных
 
 ## Установка и запуск
 
@@ -213,22 +213,18 @@ Authorization: Bearer <token>
 {
   "cases": [
     {
-      "_id": "65a1b2c3d4e5f6g7h8i9j0k1",
+      "id": "65a1b2c3d4e5f6g7h8i9j0k1",
       "name": "Starter Case",
-      "slug": "starter-case",
       "price": 100,
-      "imageUrl": "https://example.com/case-image.jpg",
-      "isActive": true,
-      "createdAt": "2024-01-15T10:30:00.000Z"
+      "image": "https://example.com/case-image.jpg",
+      "items": []
     },
     {
-      "_id": "65a1b2c3d4e5f6g7h8i9j0k2",
+      "id": "65a1b2c3d4e5f6g7h8i9j0k2",
       "name": "Premium Case",
-      "slug": "premium-case",
       "price": 500,
-      "imageUrl": "https://example.com/premium-case.jpg",
-      "isActive": true,
-      "createdAt": "2024-01-15T11:00:00.000Z"
+      "image": "https://example.com/premium-case.jpg",
+      "items": []
     }
   ]
 }
@@ -270,7 +266,6 @@ Authorization: Bearer <token>
       "id": "65a1b2c3d4e5f6g7h8i9j0a1",
       "name": "AK-47 Redline",
       "rarity": "Rare",
-      "imageUrl": "https://example.com/ak47-redline.jpg",
       "value": 50,
       "chance": 15.5
     },
@@ -278,7 +273,6 @@ Authorization: Bearer <token>
       "id": "65a1b2c3d4e5f6g7h8i9j0a2",
       "name": "Knife Butterfly",
       "rarity": "Legendary",
-      "imageUrl": "https://example.com/knife-butterfly.jpg",
       "value": 500,
       "chance": 0.5
     }
@@ -337,7 +331,7 @@ Content-Type: application/json
     "id": "65a1b2c3d4e5f6g7h8i9j0a1",
     "name": "AK-47 Redline",
     "rarity": "Rare",
-    "imageUrl": "https://example.com/ak47-redline.jpg",
+    "image": "https://example.com/ak47-redline.jpg",
     "value": 50
   },
   "serverSeed": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6",
@@ -560,14 +554,15 @@ src/
 │       ├── cases.router.ts
 │       ├── cases.service.ts
 │       ├── cases.utils.ts
-│       ├── interfaces/       # TypeScript интерфейсы
-│       │   ├── cases.types.ts
-│       │   ├── case-items.types.ts
-│       │   └── cases.opening.types.ts
-│       ├── models/           # Mongoose модели
-│       │   ├── cases.model.ts
+│       ├── cases.schema.ts
+│       ├── cases.model.ts
+│       ├── cases.types.ts
+│       ├── case-items/       # Подмодуль связи кейс-предмет
 │       │   ├── case-items.model.ts
-│       │   └── cases.opening.model.ts
+│       │   └── case-items.types.ts
+│       ├── case-openings/    # Подмодуль истории открытий
+│       │   ├── case-openings.model.ts
+│       │   └── case-openings.types.ts
 │       ├── items/            # Подмодуль предметов
 │       │   ├── items.model.ts
 │       │   └── items.types.ts
@@ -586,7 +581,8 @@ src/
 ├── types/            # Глобальные TypeScript типы
 │   └── index.ts
 ├── scripts/          # Скрипты для работы с БД
-│   └── seed-rarities.ts
+│   ├── seed-rarities.ts
+│   └── seed-complete.ts
 ├── app.ts            # Конфигурация Express приложения
 ├── index.ts          # Точка входа
 └── tsconfig.json     # Конфигурация TypeScript
