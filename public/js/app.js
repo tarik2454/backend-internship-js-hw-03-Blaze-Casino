@@ -1,3 +1,4 @@
+/* eslint-env browser */
 const API_URL = "http://localhost:3000/api";
 let token = localStorage.getItem("token");
 let currentUser = null;
