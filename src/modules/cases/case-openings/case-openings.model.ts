@@ -14,36 +14,42 @@ import { ICaseOpening } from "./case-openings.types";
  * 3. Статистика - можно анализировать выпадения предметов
  * 4. Восстановление истории - если нужно показать пользователю его предыдущие открытия
  */
-const caseOpeningSchema = new Schema<ICaseOpening>({
-  // ID кейса, который был открыт
-  caseId: { type: Schema.Types.ObjectId, ref: "Case", required: true },
+const caseOpeningSchema = new Schema<ICaseOpening>(
+  {
+    // ID кейса, который был открыт
+    caseId: { type: Schema.Types.ObjectId, ref: "Case", required: true },
 
-  // ID пользователя, который открыл кейс
-  userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    // ID пользователя, который открыл кейс
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
 
-  // ID предмета, который выпал при открытии
-  itemId: { type: Schema.Types.ObjectId, ref: "Item", required: true },
+    // ID предмета, который выпал при открытии
+    itemId: { type: Schema.Types.ObjectId, ref: "Item", required: true },
 
-  // Сгенерированное значение roll (от 0 до 1), которое определило выигрышный предмет
-  // Это значение было вычислено функцией generateRoll на основе seeds и nonce
-  rollValue: { type: Number, required: true },
+    // Сгенерированное значение roll (от 0 до 1), которое определило выигрышный предмет
+    // Это значение было вычислено функцией generateRoll на основе seeds и nonce
+    rollValue: { type: Number, required: true },
 
-  // Server seed, который использовался для генерации rollValue
-  // Этот seed был известен только серверу на момент генерации,
-  // но после открытия может быть раскрыт пользователю для проверки
-  serverSeed: { type: String, required: true },
+    // Server seed, который использовался для генерации rollValue
+    // Этот seed был известен только серверу на момент генерации,
+    // но после открытия может быть раскрыт пользователю для проверки
+    serverSeed: { type: String, required: true },
 
-  // Client seed, который использовался для генерации rollValue
-  // Может быть установлен пользователем или сгенерирован автоматически
-  clientSeed: { type: String, required: true },
+    // Client seed, который использовался для генерации rollValue
+    // Может быть установлен пользователем или сгенерирован автоматически
+    clientSeed: { type: String, required: true },
 
-  // Номер игры пользователя (nonce), который использовался для генерации
-  // Уникален для каждой игры конкретного пользователя
-  nonce: { type: Number, required: true },
+    // Номер игры пользователя (nonce), который использовался для генерации
+    // Уникален для каждой игры конкретного пользователя
+    nonce: { type: Number, required: true },
 
-  // Дата и время открытия кейса
-  createdAt: { type: Date, default: Date.now },
-});
+    // Дата и время открытия кейса
+    createdAt: { type: Date, default: Date.now },
+  },
+  {
+    versionKey: false, // Отключаем поле __v, так как записи истории не изменяются
+    timestamps: false, // Используем ручное управление createdAt
+  }
+);
 
 /**
  * Создаем составной индекс по userId и createdAt (в порядке убывания)
