@@ -175,21 +175,32 @@ function renderCases(cases) {
     casesGrid.innerHTML = '<div class="card"><p>No cases available</p></div>';
     return;
   }
+  
+  // Проверка, является ли строка валидным URL (начинается с http:// или https://)
+  const isValidUrl = (str) => {
+    if (!str || typeof str !== 'string') return false;
+    return str.startsWith('http://') || str.startsWith('https://') || str.startsWith('/');
+  };
+
   casesGrid.innerHTML = cases
-    .map(
-      (c) => `
+    .map((c) => {
+      const image = c.image || "";
+      // Если это URL, используем background-image, иначе показываем как эмодзи/текст
+      const imageHTML = isValidUrl(image)
+        ? `<div class="case-img" style="background-image: url('${image}'); background-size: cover; background-position: center;"></div>`
+        : `<div class="case-img" style="display: flex; align-items: center; justify-content: center; font-size: 4rem; background: rgba(255,255,255,0.1);">${image || "📦"}</div>`;
+      
+      return `
     <div class="card case-item">
-      <div class="case-img" style="background-image: url('${
-        c.image || ""
-      }'); background-size: cover; background-position: center;"></div>
+      ${imageHTML}
       <h3 style="margin-bottom: 0.5rem;">${c.name || "Unknown"}</h3>
       <p style="color: var(--accent-success); font-weight: 600; margin-bottom: 1rem;">$${
         c.price || 0
       }</p>
       <button onclick="openCase('${c.id || ""}')">Open Case</button>
     </div>
-  `
-    )
+  `;
+    })
     .join("");
 }
 
@@ -220,21 +231,42 @@ function showWinModal(winningItem, allItems = []) {
     return colors[rarity] || "#9E9E9E";
   };
 
+  // Проверка, является ли строка валидным URL
+  const isValidUrl = (str) => {
+    if (!str || typeof str !== 'string') return false;
+    return str.startsWith('http://') || str.startsWith('https://') || str.startsWith('/');
+  };
+
   // Генерируем HTML для всех предметов
   const itemsHTML = allItems
     .map((item) => {
       const isWinner = item.id === winningItem.id;
       const rarityColor = getRarityColor(item.rarity);
 
-      // Для выигранного предмета используем его image, для остальных - иконку
+      // Для выигранного предмета используем image из winningItem
+      // Для остальных предметов пытаемся извлечь emoji из имени (формат: "Case Name - Item Name 🐭")
+      let itemImage = null;
+      if (isWinner) {
+        itemImage = winningItem.image;
+      } else {
+        // Пытаемся извлечь emoji из конца имени (например, "Animal Case - Mouse 🐭" -> "🐭")
+        const nameMatch = item.name && item.name.match(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u);
+        if (nameMatch) {
+          itemImage = nameMatch[0];
+        }
+      }
+      
+      // Если это валидный URL, используем <img>, иначе показываем как emoji/текст
       let itemIcon = '<div style="font-size: 2rem;">📦</div>';
-      if (isWinner && winningItem.image && winningItem.image.trim() !== "") {
-        const imageUrl = winningItem.image;
-        itemIcon = `<img src="${imageUrl}" alt="${
-          item.name || "Item"
-        }" style="width: 100%; height: 100%; object-fit: cover; border-radius: 0.25rem;" onerror="console.error('Image failed to load:', '${imageUrl}'); this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size: 2rem;\\'>📦</div>';" onload="console.log('Image loaded:', '${imageUrl}');">`;
-      } else if (isWinner) {
-        console.warn("Winning item has no image:", winningItem);
+      if (itemImage && itemImage.trim() !== "") {
+        if (isValidUrl(itemImage)) {
+          itemIcon = `<img src="${itemImage}" alt="${
+            item.name || "Item"
+          }" style="width: 100%; height: 100%; object-fit: cover; border-radius: 0.25rem;" onerror="console.error('Image failed to load:', '${itemImage}'); this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size: 2rem;\\'>📦</div>';">`;
+        } else {
+          // Это emoji или текст - показываем напрямую
+          itemIcon = `<div style="font-size: 2rem;">${itemImage}</div>`;
+        }
       }
 
       return `

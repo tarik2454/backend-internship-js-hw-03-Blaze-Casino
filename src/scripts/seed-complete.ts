@@ -21,7 +21,7 @@ const CASES_DATA = [
     name: "Animal Case",
     slug: "animal-case",
     price: 50,
-    imageUrl: "https://example.com/case-animal.png",
+    imageUrl: "🦁",
     contents: [
       { emoji: "🐭", name: "Mouse" },
       { emoji: "🐰", name: "Rabbit" },
@@ -43,7 +43,7 @@ const CASES_DATA = [
     name: "Space Case",
     slug: "space-case",
     price: 75,
-    imageUrl: "https://example.com/case-space.png",
+    imageUrl: "🚀",
     contents: [
       { emoji: "⭐", name: "Star" },
       { emoji: "🌙", name: "Moon" },
@@ -65,7 +65,7 @@ const CASES_DATA = [
     name: "Food Case",
     slug: "food-case",
     price: 40,
-    imageUrl: "https://example.com/case-food.png",
+    imageUrl: "🍕",
     contents: [
       { emoji: "🍎", name: "Apple" },
       { emoji: "🍌", name: "Banana" },
@@ -87,7 +87,7 @@ const CASES_DATA = [
     name: "Sports Case",
     slug: "sports-case",
     price: 60,
-    imageUrl: "https://example.com/case-sports.png",
+    imageUrl: "⚽",
     contents: [
       { emoji: "⚽", name: "Soccer Ball" },
       { emoji: "🏀", name: "Basketball" },
@@ -229,7 +229,7 @@ const seed = async () => {
         const itemDoc = await Item.create({
           name: itemName,
           rarityId: rarity._id,
-          imageUrl: `https://example.com/item-${caseData.slug}-${index}.png`,
+          imageUrl: content.emoji, // Используем emoji из contents как imageUrl
           value: value,
         });
 
