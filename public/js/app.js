@@ -37,7 +37,7 @@ async function login(email, password) {
 
     token = data.token;
     localStorage.setItem("token", token);
-    
+
     // Show main section immediately
     showMain();
     // Load user data and cases
@@ -123,6 +123,14 @@ async function loadCases() {
 
 async function openCase(id) {
   try {
+    // Сначала загружаем детали кейса, чтобы получить все предметы
+    const caseRes = await fetch(`${API_URL}/cases/${id}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!caseRes.ok) throw new Error("Failed to load case details");
+    const caseData = await caseRes.json();
+
+    // Открываем кейс
     const res = await fetch(`${API_URL}/cases/${id}/open`, {
       method: "POST",
       headers: {
@@ -134,7 +142,8 @@ async function openCase(id) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Failed to open case");
 
-    showWinModal(data.item);
+    // Показываем модальное окно со всеми предметами и выделенным выигранным
+    showWinModal(data.item, caseData.items);
     loadUser(); // Refresh balance
   } catch (err) {
     showToast(err.message, true);
@@ -169,32 +178,186 @@ function renderCases(cases) {
     .map(
       (c) => `
     <div class="card case-item">
-      <div class="case-img" style="background-image: url('${c.image || ''}'); background-size: cover; background-position: center;"></div>
-      <h3 style="margin-bottom: 0.5rem;">${c.name || 'Unknown'}</h3>
-      <p style="color: var(--accent-success); font-weight: 600; margin-bottom: 1rem;">$${c.price || 0}</p>
-      <button onclick="openCase('${c.id || ''}')">Open Case</button>
+      <div class="case-img" style="background-image: url('${
+        c.image || ""
+      }'); background-size: cover; background-position: center;"></div>
+      <h3 style="margin-bottom: 0.5rem;">${c.name || "Unknown"}</h3>
+      <p style="color: var(--accent-success); font-weight: 600; margin-bottom: 1rem;">$${
+        c.price || 0
+      }</p>
+      <button onclick="openCase('${c.id || ""}')">Open Case</button>
     </div>
   `
     )
     .join("");
 }
 
-function showWinModal(item) {
+function showWinModal(winningItem, allItems = []) {
   const modal = document.createElement("div");
+  modal.className = "win-modal-overlay";
   modal.style.cssText = `
-    position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+    position: fixed; inset: 0; background: rgba(0,0,0,0.9);
     display: flex; align-items: center; justify-content: center; z-index: 100;
+    overflow-y: auto; padding: 2rem 1rem;
   `;
+
+  // Функция для закрытия модального окна
+  const closeModal = () => {
+    modal.remove();
+  };
+
+  // Функция для получения цвета редкости
+  const getRarityColor = (rarity) => {
+    const colors = {
+      Common: "#9E9E9E",
+      Uncommon: "#4CAF50",
+      Rare: "#2196F3",
+      Epic: "#9C27B0",
+      Legendary: "#F44336",
+      Gold: "#FFD700",
+    };
+    return colors[rarity] || "#9E9E9E";
+  };
+
+  // Генерируем HTML для всех предметов
+  const itemsHTML = allItems
+    .map((item) => {
+      const isWinner = item.id === winningItem.id;
+      const rarityColor = getRarityColor(item.rarity);
+
+      // Для выигранного предмета используем его image, для остальных - иконку
+      let itemIcon = '<div style="font-size: 2rem;">📦</div>';
+      if (isWinner && winningItem.image && winningItem.image.trim() !== "") {
+        const imageUrl = winningItem.image;
+        itemIcon = `<img src="${imageUrl}" alt="${
+          item.name || "Item"
+        }" style="width: 100%; height: 100%; object-fit: cover; border-radius: 0.25rem;" onerror="console.error('Image failed to load:', '${imageUrl}'); this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size: 2rem;\\'>📦</div>';" onload="console.log('Image loaded:', '${imageUrl}');">`;
+      } else if (isWinner) {
+        console.warn("Winning item has no image:", winningItem);
+      }
+
+      return `
+      <div style="
+        padding: 1rem;
+        background: ${
+          isWinner
+            ? "linear-gradient(135deg, rgba(255,215,0,0.25) 0%, rgba(255,215,0,0.15) 100%)"
+            : "rgba(255,255,255,0.05)"
+        };
+        border: ${
+          isWinner ? "3px solid #FFD700" : "2px solid rgba(255,255,255,0.1)"
+        };
+        border-radius: 0.75rem;
+        margin-bottom: 0.75rem;
+        transition: all 0.3s ease;
+        ${
+          isWinner
+            ? "box-shadow: 0 0 25px rgba(255,215,0,0.6), 0 0 50px rgba(255,215,0,0.4); transform: scale(1.08);"
+            : ""
+        }
+        position: relative;
+        ${isWinner ? "animation: pulse 2s infinite;" : ""}
+      ">
+        ${
+          isWinner
+            ? '<div style="position: absolute; top: -12px; right: -12px; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); color: #000; padding: 0.35rem 0.75rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 700; box-shadow: 0 4px 10px rgba(255,215,0,0.5); z-index: 10;">⭐ WIN! ⭐</div>'
+            : ""
+        }
+        <div style="display: flex; align-items: center; gap: 1rem;">
+          <div style="
+            width: 70px;
+            height: 70px;
+            background: ${
+              isWinner
+                ? `linear-gradient(135deg, ${rarityColor}40 0%, ${rarityColor}20 100%)`
+                : `${rarityColor}20`
+            };
+            border: ${
+              isWinner ? `3px solid ${rarityColor}` : `2px solid ${rarityColor}`
+            };
+            border-radius: 0.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            ${isWinner ? "box-shadow: 0 0 15px " + rarityColor + "80;" : ""}
+          ">
+            ${itemIcon}
+          </div>
+          <div style="flex: 1;">
+            <div style="
+              font-weight: ${isWinner ? "700" : "500"};
+              font-size: ${isWinner ? "1.2rem" : "1rem"};
+              color: ${isWinner ? "#FFD700" : "#fff"};
+              margin-bottom: 0.35rem;
+              text-shadow: ${
+                isWinner ? "0 0 10px rgba(255,215,0,0.5)" : "none"
+              };
+            ">
+              ${item.name || "Unknown Item"}
+            </div>
+            <div style="display: flex; gap: 1rem; font-size: 0.875rem; color: rgba(255,255,255,0.7); flex-wrap: wrap;">
+              <span style="color: ${rarityColor}; font-weight: 600; background: ${rarityColor}20; padding: 0.2rem 0.5rem; border-radius: 0.25rem;">${
+        item.rarity || "Common"
+      }</span>
+              <span>💰 $${item.value || 0}</span>
+              <span>🎲 ${item.chance?.toFixed(2) || 0}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    })
+    .join("");
+
   modal.innerHTML = `
-    <div class="card" style="text-align: center; max-width: 400px; width: 90%;">
-      <h2 style="margin-bottom: 1rem;">You Won!</h2>
-      <div style="width: 150px; height: 150px; background: #000; margin: 0 auto 1rem; border-radius: 0.5rem; background-image: url('${item.image || ''}'); background-size: cover;"></div>
-      <h3 class="rarity-${item.rarity || ''}" style="font-size: 1.25rem;">${item.name || 'Unknown Item'}</h3>
-      <p style="margin: 0.5rem 0 1.5rem;">Value: $${item.value || 0}</p>
-      <button onclick="this.parentElement.parentElement.remove()">Collect</button>
+    <div class="card" style="max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto;">
+      <div style="text-align: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 2px solid rgba(255,255,255,0.1);">
+        <h2 style="margin-bottom: 0.5rem; color: #FFD700; font-size: 2rem;">🎉 You Won! 🎉</h2>
+        <p style="color: rgba(255,255,255,0.8);">Case Contents</p>
+      </div>
+      
+      <div style="margin-bottom: 1.5rem;">
+        ${itemsHTML}
+      </div>
+      
+      <div style="text-align: center; padding-top: 1rem; border-top: 2px solid rgba(255,255,255,0.1);">
+        <button 
+          class="collect-btn"
+          style="
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+          "
+          onmouseover="this.style.transform='scale(1.05)'"
+          onmouseout="this.style.transform='scale(1)'"
+        >
+          Collect
+        </button>
+      </div>
     </div>
   `;
+
+  // Закрытие по клику вне модального окна
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      closeModal();
+    }
+  });
+
   document.body.appendChild(modal);
+
+  // Добавляем обработчик для кнопки Collect после добавления в DOM
+  const collectBtn = modal.querySelector(".collect-btn");
+  if (collectBtn) {
+    collectBtn.addEventListener("click", closeModal);
+  }
 }
 
 // Helpers

@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from "express";
-import { ZodSchema, ZodError } from "zod";
+import { z, ZodError } from "zod";
 import { HttpError } from "../helpers/index";
 
-export const validateBody = (schema: ZodSchema<unknown>) => {
+export const validateBody = (schema: z.ZodTypeAny) => {
   const func = (req: Request, _res: Response, next: NextFunction): void => {
     const result = schema.safeParse(req.body);
 
