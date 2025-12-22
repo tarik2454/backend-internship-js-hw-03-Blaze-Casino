@@ -1,13 +1,35 @@
 import express from "express";
+import minesController from "./mines.controller";
 import { authenticate } from "../../middlewares";
+import { validateBody } from "../../decorators";
+import {
+  startMineSchema,
+  revealMineSchema,
+  cashoutMineSchema,
+} from "./mines.schema";
 
 const minesRouter = express.Router();
 
-minesRouter.get("/start", authenticate, minesController.startMine);
+minesRouter.post(
+  "/start",
+  authenticate,
+  validateBody(startMineSchema),
+  minesController.startMine
+);
 
-minesRouter.get("/reveal", authenticate, minesController.revealMine);
+minesRouter.post(
+  "/reveal",
+  authenticate,
+  validateBody(revealMineSchema),
+  minesController.revealMine
+);
 
-minesRouter.get("/cashout", authenticate, minesController.cashoutMine);
+minesRouter.post(
+  "/cashout",
+  authenticate,
+  validateBody(cashoutMineSchema),
+  minesController.cashoutMine
+);
 
 minesRouter.get("/active", authenticate, minesController.activateMine);
 

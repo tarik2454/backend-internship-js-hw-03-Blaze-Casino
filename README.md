@@ -368,6 +368,134 @@ Content-Type: application/json
 
 ---
 
+### Мины (Mines)
+
+Базовый путь: `/mines`
+
+Модуль для игры "Mines" (аналог сапера). Все эндпоинты требуют авторизации.
+
+#### Начать новую игру
+
+**POST** `/mines/start`
+
+Создает новую сессию игры Mines. Списывает ставку с баланса.
+
+**Тело запроса:**
+
+```json
+{
+  "amount": 10,
+  "minesCount": 3,
+  "clientSeed": "optional_client_seed"
+}
+```
+
+- `amount`: Сумма ставки (0.10 - 10000)
+- `minesCount`: Количество мин (1-24)
+
+**Успешный ответ (201):**
+
+```json
+{
+  "gameId": "65b...",
+  "amount": 10,
+  "minesCount": 3,
+  "serverSeedHash": "hash...",
+  "multipliers": [1.03, 1.08, ...]
+}
+```
+
+---
+
+#### Открыть ячейку
+
+**POST** `/mines/reveal`
+
+Открывает выбранную ячейку.
+
+**Тело запроса:**
+
+```json
+{
+  "gameId": "65b...",
+  "position": 5
+}
+```
+
+- `position`: Номер ячейки (0-24)
+
+**Успешный ответ (200):**
+
+```json
+{
+  "position": 5,
+  "isMine": false,
+  "currentMultiplier": 1.03,
+  "currentValue": 10.30,
+  "revealedTiles": [5],
+  "safeTilesLeft": 21
+}
+```
+
+Если попали на мину, `isMine` будет `true`, и игра завершится.
+
+---
+
+#### Забрать выигрыш (Cashout)
+
+**POST** `/mines/cashout`
+
+Завершает игру и зачисляет выигрыш на баланс.
+
+**Тело запроса:**
+
+```json
+{
+  "gameId": "65b..."
+}
+```
+
+**Успешный ответ (200):**
+
+```json
+{
+  "winAmount": 15.50,
+  "multiplier": 1.55,
+  "serverSeed": "original_server_seed",
+  "minePositions": [0, 12, 24]
+}
+```
+
+---
+
+#### Получить активную игру
+
+**GET** `/mines/active`
+
+Возвращает текущую активную игру пользователя, если она есть.
+
+**Успешный ответ (200):**
+
+```json
+{
+  "game": { ... } // или null
+}
+```
+
+---
+
+#### История игр
+
+**GET** `/mines/history`
+
+Возвращает историю игр пользователя.
+
+**Query параметры:**
+- `limit`: Максимальное количество записей (default: 10)
+- `offset`: Смещение (default: 0)
+
+---
+
 ### Пользователи
 
 Базовый путь: `/users`
@@ -521,6 +649,7 @@ Authorization: Bearer <your_jwt_token>
 
 - Все эндпоинты `/api/users/*`
 - Все эндпоинты `/api/cases/*`
+- Все эндпоинты `/api/mines/*`
 - `POST /api/auth/logout` - Выход из системы
 
 ## Коды ошибок
@@ -549,26 +678,34 @@ src/
 │   │   ├── users.schema.ts
 │   │   ├── users.types.ts
 │   │   └── ...
-│   └── cases/        # Модуль кейсов (lootbox система)
-│       ├── cases.controller.ts
-│       ├── cases.router.ts
-│       ├── cases.service.ts
-│       ├── cases.utils.ts
-│       ├── cases.schema.ts
-│       ├── cases.model.ts
-│       ├── cases.types.ts
-│       ├── case-items/       # Подмодуль связи кейс-предмет
-│       │   ├── case-items.model.ts
-│       │   └── case-items.types.ts
-│       ├── case-openings/    # Подмодуль истории открытий
-│       │   ├── case-openings.model.ts
-│       │   └── case-openings.types.ts
-│       ├── items/            # Подмодуль предметов
-│       │   ├── items.model.ts
-│       │   └── items.types.ts
-│       └── rarities/         # Подмодуль редкостей
-│           ├── rarities.model.ts
-│           └── rarities.types.ts
+│   ├── cases/        # Модуль кейсов (lootbox система)
+│   │   ├── cases.controller.ts
+│   │   ├── cases.router.ts
+│   │   ├── cases.service.ts
+│   │   ├── cases.utils.ts
+│   │   ├── cases.schema.ts
+│   │   ├── cases.model.ts
+│   │   ├── cases.types.ts
+│   │   ├── case-items/       # Подмодуль связи кейс-предмет
+│   │   │   ├── case-items.model.ts
+│   │   │   └── case-items.types.ts
+│   │   ├── case-openings/    # Подмодуль истории открытий
+│   │   │   ├── case-openings.model.ts
+│   │   │   └── case-openings.types.ts
+│   │   ├── items/            # Подмодуль предметов
+│   │   │   ├── items.model.ts
+│   │   │   └── items.types.ts
+│   │   └── rarities/         # Подмодуль редкостей
+│   │       ├── rarities.model.ts
+│   │       └── rarities.types.ts
+│   └── mines/        # Модуль игры Mines
+│       ├── mines.controller.ts
+│       ├── mines.router.ts
+│       ├── mines.service.ts
+│       ├── mines.utils.ts
+│       ├── mines.schema.ts
+│       ├── mines.model.ts
+│       └── mines.types.ts
 ├── middlewares/      # Промежуточное ПО (общее для всех модулей)
 │   ├── authenticate.ts
 │   └── isValidId.ts
@@ -597,6 +734,7 @@ src/
 - `npm run lint:fix` - Автоматическое исправление ошибок линтера
 - `npm test` - Запуск тестов
 - `npm run seed:rarities` - Заполнение базы данных базовыми редкостями (Common, Rare, Epic, Legendary, etc.)
+- `npm run seed:complete` - Полное заполнение базы данных (редкости, предметы, кейсы)
 
 ## Лицензия
 

@@ -65,6 +65,36 @@ button.secondary {
   border: 1px solid var(--bg-card);
 }
 
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+
+.tab-btn.active {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.tab-btn:not(.active) {
+  background-color: var(--bg-card);
+  border: 1px solid transparent;
+  opacity: 0.7;
+}
+
+.tab-btn:not(.active):hover {
+  opacity: 1;
+  background-color: #2d3748;
+}
+
 input {
   background-color: var(--bg-card);
   border: 1px solid #334155;
@@ -107,25 +137,6 @@ input {
   transform: translateY(-4px);
 }
 
-.rarity-Common {
-  color: #9e9e9e;
-}
-.rarity-Uncommon {
-  color: #4caf50;
-}
-.rarity-Rare {
-  color: #2196f3;
-}
-.rarity-Epic {
-  color: #9c27b0;
-}
-.rarity-Legendary {
-  color: #f44336;
-}
-.rarity-Gold {
-  color: #ffd700;
-}
-
 .case-img {
   width: 100%;
   height: 150px;
@@ -149,6 +160,53 @@ input {
 
 #toast.show {
   transform: translateY(0);
+}
+
+.mines-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 400px;
+  aspect-ratio: 1/1;
+}
+
+.mine-tile {
+  background-color: #2d3748;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.mine-tile:hover:not(:disabled) {
+  background-color: #4a5568;
+  transform: translateY(-2px);
+}
+
+.mine-tile.revealed {
+  background-color: #1a202c;
+  cursor: default;
+  box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+}
+
+.mine-tile.revealed-safe {
+  background-color: #1a202c;
+  border: 2px solid var(--accent-success);
+}
+
+.mine-tile.revealed-mine {
+  background-color: #7f1d1d;
+  border: 2px solid var(--accent-error);
+}
+
+.mine-tile:disabled {
+  cursor: default;
 }
 
 @keyframes pulse {

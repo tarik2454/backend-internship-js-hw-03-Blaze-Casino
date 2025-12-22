@@ -2,30 +2,42 @@
 const API_URL = "http://localhost:3000/api";
 let token = localStorage.getItem("token");
 let currentUser = null;
+let currentMinesGameId = null;
 
-// DOM Elements
 const authSection = document.getElementById("auth-section");
 const mainSection = document.getElementById("main-section");
 const userInfoEl = document.getElementById("user-info");
-userInfoEl.innerHTML = '<div style="padding: 1rem;">Loading...</div>'; // Initial state
+userInfoEl.innerHTML = '<div style="padding: 1rem;">Loading...</div>';
 const casesGrid = document.getElementById("cases-grid");
 const toastEl = document.getElementById("toast");
 const logoutBtn = document.getElementById("logout-btn");
 const toggleAuthBtn = document.getElementById("toggle-auth");
 const authTitle = document.getElementById("auth-title");
 
-// Init
+const tabCases = document.getElementById("tab-cases");
+const tabMines = document.getElementById("tab-mines");
+const casesView = document.getElementById("cases-view");
+const minesView = document.getElementById("mines-view");
+
+const minesAmountInput = document.getElementById("mines-amount");
+const minesCountInput = document.getElementById("mines-count");
+const minesStartBtn = document.getElementById("mines-start-btn");
+const minesCashoutBtn = document.getElementById("mines-cashout-btn");
+const minesGrid = document.getElementById("mines-grid");
+const minesInfo = document.getElementById("mines-info");
+const minesNextMult = document.getElementById("mines-next-mult");
+const minesCurrentWin = document.getElementById("mines-current-win");
+const minesHistoryTable = document.getElementById("mines-history-table");
+
 function init() {
   if (token) {
-    // Optimistic UI: Show main immediately, then populate
     showMain();
-    loadUser(); // Async data fetch
+    loadUser();
   } else {
     showAuth();
   }
 }
 
-// Auth Logic
 async function login(email, password) {
   try {
     const res = await fetch(`${API_URL}/auth/login`, {
@@ -39,9 +51,7 @@ async function login(email, password) {
     token = data.token;
     localStorage.setItem("token", token);
 
-    // Show main section immediately
     showMain();
-    // Load user data and cases
     await loadUser();
   } catch (err) {
     showToast(err.message, true);
@@ -56,7 +66,6 @@ async function register(username, email, password) {
       body: JSON.stringify({ username, email, password }),
     });
 
-    // Check if response is JSON (sometimes html error pages return)
     const contentType = res.headers.get("content-type");
     let data;
     if (contentType && contentType.indexOf("application/json") !== -1) {
@@ -69,7 +78,6 @@ async function register(username, email, password) {
 
     if (!res.ok) throw new Error(data.message || "Registration failed");
 
-    // Auto login after register
     await login(email, password);
   } catch (err) {
     showToast(err.message, true);
@@ -91,10 +99,10 @@ async function loadUser() {
     currentUser = await res.json();
     renderUser();
     loadCases();
+    checkActiveMinesGame();
   } catch (err) {
     console.error("LoadUser error:", err);
     showToast("Failed to load user: " + err.message, true);
-    // Force logout on any error to ensure UI recovers
     logout();
   }
 }
@@ -106,7 +114,34 @@ function logout() {
   showAuth();
 }
 
-// Cases Logic
+function switchTab(tab) {
+  if (tab === "cases") {
+    tabCases.classList.add("active");
+    tabCases.classList.remove("secondary");
+    tabMines.classList.remove("active");
+    tabMines.classList.add("secondary");
+
+    casesView.classList.remove("hidden");
+    minesView.classList.add("hidden");
+  } else {
+    tabMines.classList.add("active");
+    tabMines.classList.remove("secondary");
+    tabCases.classList.remove("active");
+    tabCases.classList.add("secondary");
+
+    minesView.classList.remove("hidden");
+    casesView.classList.add("hidden");
+
+    if (minesGrid.children.length === 0) {
+      renderMinesGrid();
+    }
+    loadMinesHistory();
+  }
+}
+
+tabCases.addEventListener("click", () => switchTab("cases"));
+tabMines.addEventListener("click", () => switchTab("mines"));
+
 async function loadCases() {
   try {
     const res = await fetch(`${API_URL}/cases`, {
@@ -122,36 +157,287 @@ async function loadCases() {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function openCase(id) {
   try {
-    // Сначала загружаем детали кейса, чтобы получить все предметы
     const caseRes = await fetch(`${API_URL}/cases/${id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!caseRes.ok) throw new Error("Failed to load case details");
     const caseData = await caseRes.json();
 
-    // Открываем кейс
     const res = await fetch(`${API_URL}/cases/${id}/open`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({}), // clientSeed auto generated
+      body: JSON.stringify({}),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Failed to open case");
 
-    // Показываем модальное окно со всеми предметами и выделенным выигранным
     showWinModal(data.item, caseData.items);
-    loadUser(); // Refresh balance
+    loadUser();
   } catch (err) {
     showToast(err.message, true);
   }
 }
 
-// UI Renderers
+async function checkActiveMinesGame() {
+  try {
+    const res = await fetch(`${API_URL}/mines/active`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+
+    if (data.game) {
+      currentMinesGameId = data.game._id;
+      updateMinesUI(data.game);
+      showToast("Restored active Mines game");
+    } else {
+      currentMinesGameId = null;
+      renderMinesGrid();
+      updateMinesControls(false);
+    }
+  } catch (err) {
+    console.error("Failed to check active mines game", err);
+  }
+}
+
+async function startMinesGame() {
+  try {
+    const amount = parseFloat(minesAmountInput.value);
+    const minesCount = parseInt(minesCountInput.value);
+
+    const res = await fetch(`${API_URL}/mines/start`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ amount, minesCount }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to start game");
+
+    currentMinesGameId = data.gameId;
+
+    renderMinesGrid();
+    updateMinesControls(true);
+
+    if (data.multipliers && data.multipliers.length > 0) {
+      minesNextMult.textContent = `${data.multipliers[0]}x`;
+      minesCurrentWin.textContent = `$${amount.toFixed(2)}`;
+    }
+
+    loadUser();
+    showToast("Game started!");
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+async function revealTile(position) {
+  if (!currentMinesGameId) return;
+
+  try {
+    const res = await fetch(`${API_URL}/mines/reveal`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ gameId: currentMinesGameId, position }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to reveal tile");
+
+    const btn = minesGrid.children[position];
+
+    if (data.isMine) {
+      btn.classList.add("revealed-mine");
+      btn.innerHTML = "💣";
+      showToast("BOOM! Game Over", true);
+      endMinesGame(data.minePositions);
+      loadUser();
+      loadMinesHistory();
+    } else {
+      btn.classList.add("revealed-safe");
+      btn.innerHTML = "💎";
+      btn.disabled = true;
+
+      minesNextMult.textContent = `${data.currentMultiplier}x`;
+      minesCurrentWin.textContent = `$${data.currentValue.toFixed(2)}`;
+
+      if (data.status === "won") {
+        showToast(`You Won $${data.winAmount}! 🎉`);
+        endMinesGame();
+        loadUser();
+        loadMinesHistory();
+      }
+    }
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+async function cashoutMines() {
+  if (!currentMinesGameId) return;
+
+  try {
+    const res = await fetch(`${API_URL}/mines/cashout`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ gameId: currentMinesGameId }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.message || "Failed to cashout");
+
+    showToast(`Cashed out $${data.winAmount}! 💰`);
+    endMinesGame(data.minePositions);
+    loadUser();
+    loadMinesHistory();
+  } catch (err) {
+    showToast(err.message, true);
+  }
+}
+
+function renderMinesGrid(revealedPositions = [], minePositions = []) {
+  minesGrid.innerHTML = "";
+  for (let i = 0; i < 25; i++) {
+    const btn = document.createElement("button");
+    btn.className = "mine-tile";
+    btn.dataset.pos = i;
+
+    if (revealedPositions.includes(i)) {
+      btn.disabled = true;
+      if (minePositions.includes(i)) {
+        btn.classList.add("revealed-mine");
+        btn.innerHTML = "💣";
+      } else {
+        btn.classList.add("revealed-safe");
+        btn.innerHTML = "💎";
+      }
+    } else {
+      btn.addEventListener("click", () => revealTile(i));
+    }
+
+    minesGrid.appendChild(btn);
+  }
+}
+
+function updateMinesUI(game) {
+  if (game.status === "active") {
+    updateMinesControls(true);
+    renderMinesGrid(game.revealedPositions);
+    minesInfo.classList.remove("hidden");
+  } else {
+    updateMinesControls(false);
+    renderMinesGrid(game.revealedPositions, game.minePositions);
+  }
+}
+
+function updateMinesControls(isActive) {
+  minesStartBtn.disabled = isActive;
+  minesCashoutBtn.disabled = !isActive;
+  minesAmountInput.disabled = isActive;
+  minesCountInput.disabled = isActive;
+
+  if (isActive) {
+    minesInfo.classList.remove("hidden");
+  } else {
+    minesInfo.classList.add("hidden");
+  }
+}
+
+function endMinesGame(allMines = []) {
+  currentMinesGameId = null;
+  updateMinesControls(false);
+
+  if (allMines.length > 0) {
+    allMines.forEach((pos) => {
+      const btn = minesGrid.children[pos];
+      if (btn && !btn.classList.contains("revealed-safe")) {
+        btn.classList.add("revealed");
+        btn.innerHTML = "💣";
+        btn.style.opacity = "0.5";
+      }
+    });
+  }
+
+  Array.from(minesGrid.children).forEach((btn) => (btn.disabled = true));
+}
+
+async function loadMinesHistory() {
+  try {
+    const res = await fetch(`${API_URL}/mines/history?limit=10`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    renderMinesHistory(data.games);
+  } catch (err) {
+    console.error("Failed to load history", err);
+  }
+}
+
+function renderMinesHistory(games) {
+  if (!games || games.length === 0) {
+    minesHistoryTable.innerHTML =
+      '<tr><td colspan="5" style="text-align: center; padding: 1rem; color: var(--text-dim);">No history yet</td></tr>';
+    return;
+  }
+
+  minesHistoryTable.innerHTML = games
+    .map((game) => {
+      const date = new Date(game.createdAt).toLocaleString();
+      const profit =
+        game.status === "won"
+          ? game.winAmount - game.betAmount
+          : -game.betAmount;
+      const profitClass =
+        profit >= 0
+          ? "color: var(--accent-success);"
+          : "color: var(--accent-error);";
+      const profitSign = profit >= 0 ? "+" : "";
+
+      return `
+      <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+        <td style="padding: 0.75rem 1rem; color: var(--text-dim); font-size: 0.875rem;">${date}</td>
+        <td style="padding: 0.75rem 1rem;">$${game.betAmount.toFixed(2)}</td>
+        <td style="padding: 0.75rem 1rem;">${game.minesCount}</td>
+        <td style="padding: 0.75rem 1rem;">${
+          game.cashoutMultiplier ? game.cashoutMultiplier + "x" : "-"
+        }</td>
+        <td style="padding: 0.75rem 1rem; font-weight: 600; ${profitClass}">${profitSign}$${profit.toFixed(
+        2
+      )}</td>
+      </tr>
+    `;
+    })
+    .join("");
+}
+
+minesStartBtn.addEventListener("click", startMinesGame);
+minesCashoutBtn.addEventListener("click", cashoutMines);
+
+minesCountInput.addEventListener("change", () => {
+  const val = parseInt(minesCountInput.value);
+  if (val < 1) minesCountInput.value = 1;
+  if (val > 24) minesCountInput.value = 24;
+});
+
+minesAmountInput.addEventListener("change", () => {
+  const val = parseFloat(minesAmountInput.value);
+  if (val < 0.1) minesAmountInput.value = 0.1;
+});
+
 function renderUser() {
   if (!currentUser) return;
   userInfoEl.innerHTML = `
@@ -175,21 +461,25 @@ function renderCases(cases) {
     casesGrid.innerHTML = '<div class="card"><p>No cases available</p></div>';
     return;
   }
-  
-  // Проверка, является ли строка валидным URL (начинается с http:// или https://)
+
   const isValidUrl = (str) => {
-    if (!str || typeof str !== 'string') return false;
-    return str.startsWith('http://') || str.startsWith('https://') || str.startsWith('/');
+    if (!str || typeof str !== "string") return false;
+    return (
+      str.startsWith("http://") ||
+      str.startsWith("https://") ||
+      str.startsWith("/")
+    );
   };
 
   casesGrid.innerHTML = cases
     .map((c) => {
       const image = c.image || "";
-      // Если это URL, используем background-image, иначе показываем как эмодзи/текст
       const imageHTML = isValidUrl(image)
         ? `<div class="case-img" style="background-image: url('${image}'); background-size: cover; background-position: center;"></div>`
-        : `<div class="case-img" style="display: flex; align-items: center; justify-content: center; font-size: 4rem; background: rgba(255,255,255,0.1);">${image || "📦"}</div>`;
-      
+        : `<div class="case-img" style="display: flex; align-items: center; justify-content: center; font-size: 4rem; background: rgba(255,255,255,0.1);">${
+            image || "📦"
+          }</div>`;
+
       return `
     <div class="card case-item">
       ${imageHTML}
@@ -213,12 +503,10 @@ function showWinModal(winningItem, allItems = []) {
     overflow-y: auto; padding: 2rem 1rem;
   `;
 
-  // Функция для закрытия модального окна
   const closeModal = () => {
     modal.remove();
   };
 
-  // Функция для получения цвета редкости
   const getRarityColor = (rarity) => {
     const colors = {
       Common: "#9E9E9E",
@@ -231,32 +519,34 @@ function showWinModal(winningItem, allItems = []) {
     return colors[rarity] || "#9E9E9E";
   };
 
-  // Проверка, является ли строка валидным URL
   const isValidUrl = (str) => {
-    if (!str || typeof str !== 'string') return false;
-    return str.startsWith('http://') || str.startsWith('https://') || str.startsWith('/');
+    if (!str || typeof str !== "string") return false;
+    return (
+      str.startsWith("http://") ||
+      str.startsWith("https://") ||
+      str.startsWith("/")
+    );
   };
 
-  // Генерируем HTML для всех предметов
   const itemsHTML = allItems
     .map((item) => {
       const isWinner = item.id === winningItem.id;
       const rarityColor = getRarityColor(item.rarity);
 
-      // Для выигранного предмета используем image из winningItem
-      // Для остальных предметов пытаемся извлечь emoji из имени (формат: "Case Name - Item Name 🐭")
       let itemImage = null;
       if (isWinner) {
         itemImage = winningItem.image;
       } else {
-        // Пытаемся извлечь emoji из конца имени (например, "Animal Case - Mouse 🐭" -> "🐭")
-        const nameMatch = item.name && item.name.match(/[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u);
+        const nameMatch =
+          item.name &&
+          item.name.match(
+            /[\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u
+          );
         if (nameMatch) {
           itemImage = nameMatch[0];
         }
       }
-      
-      // Если это валидный URL, используем <img>, иначе показываем как emoji/текст
+
       let itemIcon = '<div style="font-size: 2rem;">📦</div>';
       if (itemImage && itemImage.trim() !== "") {
         if (isValidUrl(itemImage)) {
@@ -264,7 +554,6 @@ function showWinModal(winningItem, allItems = []) {
             item.name || "Item"
           }" style="width: 100%; height: 100%; object-fit: cover; border-radius: 0.25rem;" onerror="console.error('Image failed to load:', '${itemImage}'); this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size: 2rem;\\'>📦</div>';">`;
         } else {
-          // Это emoji или текст - показываем напрямую
           itemIcon = `<div style="font-size: 2rem;">${itemImage}</div>`;
         }
       }
@@ -377,7 +666,6 @@ function showWinModal(winningItem, allItems = []) {
     </div>
   `;
 
-  // Закрытие по клику вне модального окна
   modal.addEventListener("click", (e) => {
     if (e.target === modal) {
       closeModal();
@@ -386,14 +674,12 @@ function showWinModal(winningItem, allItems = []) {
 
   document.body.appendChild(modal);
 
-  // Добавляем обработчик для кнопки Collect после добавления в DOM
   const collectBtn = modal.querySelector(".collect-btn");
   if (collectBtn) {
     collectBtn.addEventListener("click", closeModal);
   }
 }
 
-// Helpers
 function showAuth() {
   authSection.classList.remove("hidden");
   mainSection.classList.add("hidden");
@@ -415,7 +701,6 @@ function showToast(msg, isError = false) {
   setTimeout(() => toastEl.classList.remove("show"), 3000);
 }
 
-// Event Listeners
 let isLoginMode = true;
 
 toggleAuthBtn.addEventListener("click", () => {

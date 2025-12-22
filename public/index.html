@@ -54,13 +54,158 @@
           justify-content: space-between;
           align-items: center;
         "
-      >
-        <!-- Populated by JS -->
+      ></div>
+
+      <div class="tabs" style="margin-bottom: 1.5rem; display: flex; gap: 1rem">
+        <button id="tab-cases" class="tab-btn active">Cases</button>
+        <button id="tab-mines" class="tab-btn secondary">Mines</button>
       </div>
 
-      <h2 style="margin-bottom: 1.5rem">Available Cases</h2>
-      <div class="grid" id="cases-grid">
-        <!-- Populated by JS -->
+      <div id="cases-view">
+        <h2 style="margin-bottom: 1.5rem">Available Cases</h2>
+        <div class="grid" id="cases-grid"></div>
+      </div>
+
+      <div id="mines-view" class="hidden">
+        <div
+          style="
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 2rem;
+            align-items: start;
+          "
+        >
+          <div
+            class="card"
+            style="
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              min-height: 400px;
+            "
+          >
+            <div id="mines-grid" class="mines-grid"></div>
+          </div>
+
+          <div class="card">
+            <h2 style="margin-bottom: 1rem">Mines Configuration</h2>
+
+            <div style="margin-bottom: 1rem">
+              <label
+                style="
+                  display: block;
+                  margin-bottom: 0.5rem;
+                  color: var(--text-dim);
+                "
+                >Bet Amount</label
+              >
+              <input
+                type="number"
+                id="mines-amount"
+                value="10"
+                min="0.1"
+                step="0.1"
+              />
+            </div>
+
+            <div style="margin-bottom: 1.5rem">
+              <label
+                style="
+                  display: block;
+                  margin-bottom: 0.5rem;
+                  color: var(--text-dim);
+                "
+                >Mines Count (1-24)</label
+              >
+              <input
+                type="number"
+                id="mines-count"
+                value="3"
+                min="1"
+                max="24"
+              />
+            </div>
+
+            <button
+              id="mines-start-btn"
+              style="width: 100%; margin-bottom: 1rem"
+            >
+              Start Game
+            </button>
+            <button
+              id="mines-cashout-btn"
+              class="secondary"
+              style="
+                width: 100%;
+                background-color: var(--accent-success);
+                border-color: var(--accent-success);
+                color: white;
+              "
+              disabled
+            >
+              Cashout
+            </button>
+
+            <div
+              id="mines-info"
+              class="hidden"
+              style="
+                margin-top: 1.5rem;
+                padding-top: 1rem;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+              "
+            >
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  margin-bottom: 0.5rem;
+                "
+              >
+                <span style="color: var(--text-dim)">Next Multiplier:</span>
+                <span
+                  id="mines-next-mult"
+                  style="font-weight: 700; color: #ffd700"
+                  >-</span
+                >
+              </div>
+              <div style="display: flex; justify-content: space-between">
+                <span style="color: var(--text-dim)">Current Win:</span>
+                <span
+                  id="mines-current-win"
+                  style="font-weight: 700; color: var(--accent-success)"
+                  >-</span
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top: 2rem">
+          <h2 style="margin-bottom: 1rem">Game History</h2>
+          <div class="card" style="padding: 0; overflow: hidden">
+            <table
+              style="width: 100%; border-collapse: collapse; text-align: left"
+            >
+              <thead
+                style="
+                  background-color: rgba(255, 255, 255, 0.05);
+                  color: var(--text-dim);
+                  font-size: 0.875rem;
+                "
+              >
+                <tr>
+                  <th style="padding: 1rem">Time</th>
+                  <th style="padding: 1rem">Bet</th>
+                  <th style="padding: 1rem">Mines</th>
+                  <th style="padding: 1rem">Multiplier</th>
+                  <th style="padding: 1rem">Profit</th>
+                </tr>
+              </thead>
+              <tbody id="mines-history-table"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
 
