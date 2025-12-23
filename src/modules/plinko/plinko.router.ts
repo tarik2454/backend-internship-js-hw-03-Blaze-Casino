@@ -1,7 +1,7 @@
 import express from "express";
 import { authenticate } from "../../middlewares";
 import { validateBody, validateQuery } from "../../decorators";
-import plinkoController from "./plinco.controller";
+import plinkoController from "./plinko.controller";
 import { dropPlinkoSchema, getMultipliersSchema } from "./plinko.schema";
 
 const plinkoRouter = express.Router();
