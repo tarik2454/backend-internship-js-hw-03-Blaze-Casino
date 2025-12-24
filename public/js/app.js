@@ -16,8 +16,10 @@ const authTitle = document.getElementById("auth-title");
 
 const tabCases = document.getElementById("tab-cases");
 const tabMines = document.getElementById("tab-mines");
+const tabBonus = document.getElementById("tab-bonus");
 const casesView = document.getElementById("cases-view");
 const minesView = document.getElementById("mines-view");
+const bonusView = document.getElementById("bonus-view");
 
 const minesAmountInput = document.getElementById("mines-amount");
 const minesCountInput = document.getElementById("mines-count");
@@ -149,6 +151,12 @@ function switchTab(tab) {
     plinkoView.classList.add("hidden");
   }
 
+  if (tabBonus) {
+    tabBonus.classList.remove("active");
+    tabBonus.classList.add("secondary");
+    bonusView.classList.add("hidden");
+  }
+
   if (tab === "cases") {
     tabCases.classList.add("active");
     tabCases.classList.remove("secondary");
@@ -169,12 +177,21 @@ function switchTab(tab) {
       const event = new Event("plinko:shown");
       document.dispatchEvent(event);
     }
+  } else if (tab === "bonus") {
+    if (tabBonus) {
+      tabBonus.classList.add("active");
+      tabBonus.classList.remove("secondary");
+      bonusView.classList.remove("hidden");
+      const event = new Event("bonus:shown");
+      document.dispatchEvent(event);
+    }
   }
 }
 
 tabCases.addEventListener("click", () => switchTab("cases"));
 tabMines.addEventListener("click", () => switchTab("mines"));
 if (tabPlinko) tabPlinko.addEventListener("click", () => switchTab("plinko"));
+if (tabBonus) tabBonus.addEventListener("click", () => switchTab("bonus"));
 
 async function loadCases() {
   try {

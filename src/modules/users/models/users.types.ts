@@ -9,7 +9,8 @@ export interface IUser extends Document {
   totalWagered: number;
   gamesPlayed: number;
   totalWon: number;
+  lastBonusClaimAt?: Date;
+  nonce?: number;
   serverSeed?: string;
   clientSeed?: string;
-  nonce?: number;
 }

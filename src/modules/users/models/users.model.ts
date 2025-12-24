@@ -42,6 +42,7 @@ const userSchema = new Schema<IUser>(
       type: Number,
       default: 0,
     },
+    lastBonusClaimAt: { type: Date },
     nonce: { type: Number, default: 0 },
     serverSeed: { type: String },
     clientSeed: { type: String },

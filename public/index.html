@@ -60,6 +60,7 @@
         <button id="tab-cases" class="tab-btn active">Cases</button>
         <button id="tab-mines" class="tab-btn secondary">Mines</button>
         <button id="tab-plinko" class="tab-btn secondary">Plinko</button>
+        <button id="tab-bonus" class="tab-btn secondary">Bonus</button>
       </div>
 
       <div id="cases-view">
@@ -376,11 +377,82 @@
           </div>
         </div>
       </div>
+
+      <!-- Bonus View -->
+      <div id="bonus-view" class="hidden">
+        <div class="card" style="max-width: 600px; margin: 0 auto;">
+          <h2 style="margin-bottom: 1.5rem; text-align: center;">Minute Bonus</h2>
+
+          <div id="bonus-status" style="margin-bottom: 2rem;">
+            <div
+              style="
+                background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+                border: 2px solid rgba(102, 126, 234, 0.3);
+                border-radius: 1rem;
+                padding: 2rem;
+                text-align: center;
+                margin-bottom: 1.5rem;
+              "
+            >
+              <div
+                style="
+                  font-size: 3rem;
+                  font-weight: 700;
+                  color: var(--accent-success);
+                  margin-bottom: 0.5rem;
+                "
+                id="bonus-amount"
+              >
+                $10.00
+              </div>
+              <div style="color: var(--text-dim); font-size: 0.875rem; margin-bottom: 1rem;">
+                Bonus Amount
+              </div>
+              <div
+                id="bonus-timer"
+                style="
+                  font-size: 1.5rem;
+                  font-weight: 600;
+                  color: var(--text-dim);
+                  min-height: 1.5rem;
+                "
+              >
+                -
+              </div>
+            </div>
+
+            <button
+              id="bonus-claim-btn"
+              onclick="if(typeof claimBonus === 'function') claimBonus(); else console.error('claimBonus not found');"
+              style="
+                width: 100%;
+                padding: 1rem;
+                font-size: 1.1rem;
+                font-weight: 600;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                border: none;
+                border-radius: 0.5rem;
+                color: white;
+                cursor: pointer;
+                transition: transform 0.2s, opacity 0.2s;
+              "
+              onmouseover="if(!this.disabled) this.style.transform='scale(1.02)'"
+              onmouseout="this.style.transform='scale(1)'"
+            >
+              Claim Bonus
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div id="toast"></div>
 
     <script src="js/plinko.js"></script>
     <script src="js/app.js"></script>
+    <script>
+      window.API_URL = window.API_URL || "http://localhost:3000/api";
+    </script>
+    <script src="js/bonus.js"></script>
   </body>
 </html>

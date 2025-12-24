@@ -10,6 +10,7 @@ import { ExpressError } from "./types";
 import { minesRouter } from "./modules/mines/mines.router";
 import { plinkoRouter } from "./modules/plinko/plinko.router";
 import { loginLimiter, registerLimiter } from "./middlewares";
+import { claimBonusRouter } from "./modules/bonus/bonus.router";
 
 const app = express();
 
@@ -38,6 +39,7 @@ app.use("/api/users", userRouter);
 app.use("/api/cases", caseRouter);
 app.use("/api/mines", minesRouter);
 app.use("/api/plinko", plinkoRouter);
+app.use("/api/bonus", claimBonusRouter);
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ message: "Not found" });
