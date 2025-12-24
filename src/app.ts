@@ -2,7 +2,6 @@ import express, { Request, Response, NextFunction } from "express";
 import path from "path";
 import logger from "morgan";
 import cors from "cors";
-import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
 import { authRouter } from "./modules/auth/auth.router";
 import { userRouter } from "./modules/users/users.router";
@@ -48,40 +47,46 @@ app.get("/api-docs/swagger.json", (_req: Request, res: Response) => {
   res.send(swaggerSpec);
 });
 
-const swaggerUiOptions = {
-  customCss: ".swagger-ui .topbar { display: none }",
-  customSiteTitle: "SkyRush API Documentation",
-  customCssUrl: "https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui.css",
-  customJs: [
-    "https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-bundle.js",
-    "https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-standalone-preset.js",
-  ],
-  swaggerOptions: {
-    persistAuthorization: true,
-    url: "/api-docs/swagger.json",
-  },
-};
-
-app.use((req: Request, res: Response, next: NextFunction) => {
-  if (
-    req.path.includes("swagger-ui-init.js") ||
-    req.path.includes("swagger-ui.css") ||
-    req.path.includes("swagger-ui-bundle.js") ||
-    req.path.includes("swagger-ui-standalone-preset.js") ||
-    (req.path.startsWith("/api-docs") &&
-      (req.path.endsWith(".js") ||
-        req.path.endsWith(".css") ||
-        req.path.endsWith(".map") ||
-        req.path.includes("favicon")))
-  ) {
-    res.status(404).json({ message: "Not found" });
-    return;
-  }
-  next();
+app.get("/api-docs", (_req: Request, res: Response) => {
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SkyRush API Documentation</title>
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui.css" />
+  <style>
+    .swagger-ui .topbar { display: none }
+  </style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-bundle.js"></script>
+  <script src="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-standalone-preset.js"></script>
+  <script>
+    window.onload = function() {
+      const ui = SwaggerUIBundle({
+        url: "/api-docs/swagger.json",
+        dom_id: "#swagger-ui",
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        layout: "StandaloneLayout",
+        persistAuthorization: true
+      });
+    };
+  </script>
+</body>
+</html>`;
+  res.send(html);
 });
 
-app.get("/api-docs", swaggerUi.setup(swaggerSpec, swaggerUiOptions));
-app.get("/api-docs/", swaggerUi.setup(swaggerSpec, swaggerUiOptions));
+app.get("/api-docs/", (_req: Request, res: Response) => {
+  res.redirect("/api-docs");
+});
 
 app.use("/api/auth/login", loginLimiter);
 app.use("/api/auth/register", registerLimiter);
