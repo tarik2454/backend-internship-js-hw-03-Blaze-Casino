@@ -9,6 +9,7 @@ import {
   generateMultiplierTable,
   hashServerSeed,
 } from "./mines.utils";
+import leaderboardService from "../leaderboard/leaderboard.service";
 
 class MinesService {
   async startMine(
@@ -132,6 +133,17 @@ class MinesService {
       game.finishedAt = new Date();
       await game.save();
 
+      const isWin = false;
+      const netWin = -game.betAmount;
+      leaderboardService
+        .updateStats(user._id, game.betAmount, netWin, isWin)
+        .catch((err) => {
+          console.error("Leaderboard update failed", {
+            userId: user._id.toString(),
+            error: err,
+          });
+        });
+
       return {
         position,
         isMine: true,
@@ -171,6 +183,17 @@ class MinesService {
           await user.save({ session });
 
           await session.commitTransaction();
+
+          const isWin = true;
+          const netWin = currentValue - game.betAmount;
+          leaderboardService
+            .updateStats(user._id, game.betAmount, netWin, isWin)
+            .catch((err) => {
+              console.error("Leaderboard update failed", {
+                userId: user._id.toString(),
+                error: err,
+              });
+            });
 
           return {
             position,
@@ -243,6 +266,17 @@ class MinesService {
       await user.save({ session });
 
       await session.commitTransaction();
+
+      const isWin = true;
+      const netWin = winAmount - game.betAmount;
+      leaderboardService
+        .updateStats(user._id, game.betAmount, netWin, isWin)
+        .catch((err) => {
+          console.error("Leaderboard update failed", {
+            userId: user._id.toString(),
+            error: err,
+          });
+        });
 
       return {
         winAmount,

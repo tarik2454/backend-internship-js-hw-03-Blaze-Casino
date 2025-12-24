@@ -17,9 +17,11 @@ const authTitle = document.getElementById("auth-title");
 const tabCases = document.getElementById("tab-cases");
 const tabMines = document.getElementById("tab-mines");
 const tabBonus = document.getElementById("tab-bonus");
+const tabLeaderboard = document.getElementById("tab-leaderboard");
 const casesView = document.getElementById("cases-view");
 const minesView = document.getElementById("mines-view");
 const bonusView = document.getElementById("bonus-view");
+const leaderboardView = document.getElementById("leaderboard-view");
 
 const minesAmountInput = document.getElementById("mines-amount");
 const minesCountInput = document.getElementById("mines-count");
@@ -73,8 +75,7 @@ async function register(username, email, password) {
     if (contentType && contentType.indexOf("application/json") !== -1) {
       data = await res.json();
     } else {
-      const text = await res.text();
-      console.error("Non-JSON response:", text);
+      await res.text();
       throw new Error("Server returned non-JSON response");
     }
 
@@ -119,7 +120,6 @@ async function loadUser() {
     loadCases();
     checkActiveMinesGame();
   } catch (err) {
-    console.error("LoadUser error:", err);
     showToast("Failed to load user: " + err.message, true);
     logout();
   }
@@ -157,6 +157,13 @@ function switchTab(tab) {
     bonusView.classList.add("hidden");
   }
 
+  if (tabLeaderboard) {
+    tabLeaderboard.classList.remove("active");
+    tabLeaderboard.classList.add("secondary");
+    leaderboardView.classList.add("hidden");
+    document.dispatchEvent(new CustomEvent("leaderboard:hidden"));
+  }
+
   if (tab === "cases") {
     tabCases.classList.add("active");
     tabCases.classList.remove("secondary");
@@ -185,6 +192,13 @@ function switchTab(tab) {
       const event = new Event("bonus:shown");
       document.dispatchEvent(event);
     }
+  } else if (tab === "leaderboard") {
+    if (tabLeaderboard) {
+      tabLeaderboard.classList.add("active");
+      tabLeaderboard.classList.remove("secondary");
+      leaderboardView.classList.remove("hidden");
+      document.dispatchEvent(new CustomEvent("leaderboard:shown"));
+    }
   }
 }
 
@@ -192,6 +206,7 @@ tabCases.addEventListener("click", () => switchTab("cases"));
 tabMines.addEventListener("click", () => switchTab("mines"));
 if (tabPlinko) tabPlinko.addEventListener("click", () => switchTab("plinko"));
 if (tabBonus) tabBonus.addEventListener("click", () => switchTab("bonus"));
+if (tabLeaderboard) tabLeaderboard.addEventListener("click", () => switchTab("leaderboard"));
 
 async function loadCases() {
   try {
@@ -294,7 +309,6 @@ async function checkActiveMinesGame() {
       updateMinesControls(false);
     }
   } catch (err) {
-    console.error("Failed to check active mines game", err);
   }
 }
 
@@ -476,7 +490,6 @@ async function loadMinesHistory() {
     const data = await res.json();
     renderMinesHistory(data.games);
   } catch (err) {
-    console.error("Failed to load history", err);
   }
 }
 
@@ -647,7 +660,7 @@ function showWinModal(winningItem, allItems = []) {
         if (isValidUrl(itemImage)) {
           itemIcon = `<img src="${itemImage}" alt="${
             item.name || "Item"
-          }" style="width: 100%; height: 100%; object-fit: cover; border-radius: 0.25rem;" onerror="console.error('Image failed to load:', '${itemImage}'); this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size: 2rem;\\'>📦</div>';">`;
+          }" style="width: 100%; height: 100%; object-fit: cover; border-radius: 0.25rem;" onerror="this.style.display='none'; this.parentElement.innerHTML='<div style=\\'font-size: 2rem;\\'>📦</div>';">`;
         } else {
           itemIcon = `<div style="font-size: 2rem;">${itemImage}</div>`;
         }

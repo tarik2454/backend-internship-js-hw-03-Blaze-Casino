@@ -61,6 +61,7 @@
         <button id="tab-mines" class="tab-btn secondary">Mines</button>
         <button id="tab-plinko" class="tab-btn secondary">Plinko</button>
         <button id="tab-bonus" class="tab-btn secondary">Bonus</button>
+        <button id="tab-leaderboard" class="tab-btn secondary">Leaderboard</button>
       </div>
 
       <div id="cases-view">
@@ -446,6 +447,43 @@
       </div>
     </div>
 
+    <!-- Leaderboard View -->
+    <div id="leaderboard-view" class="hidden">
+      <div class="card" style="max-width: 900px; margin: 0 auto;">
+        <h2 style="margin-bottom: 1.5rem; text-align: center;">Leaderboard</h2>
+        
+        <div style="margin-bottom: 1.5rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+          <button id="leaderboard-period-daily" class="secondary" data-period="daily">Daily</button>
+          <button id="leaderboard-period-weekly" class="secondary" data-period="weekly">Weekly</button>
+          <button id="leaderboard-period-monthly" class="secondary" data-period="monthly">Monthly</button>
+          <button id="leaderboard-period-all" class="secondary active" data-period="all">All Time</button>
+        </div>
+
+        <div id="leaderboard-current-user" style="margin-bottom: 1.5rem;"></div>
+
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="border-bottom: 2px solid rgba(102, 126, 234, 0.3);">
+                <th style="padding: 0.75rem; text-align: left;">Rank</th>
+                <th style="padding: 0.75rem; text-align: left;">Username</th>
+                <th style="padding: 0.75rem; text-align: right;">Total Wagered</th>
+                <th style="padding: 0.75rem; text-align: right;">Games Played</th>
+                <th style="padding: 0.75rem; text-align: right;">Win Rate</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-table-body">
+              <tr>
+                <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-dim);">
+                  Loading...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <div id="toast"></div>
 
     <script src="js/plinko.js"></script>
@@ -454,5 +492,6 @@
       window.API_URL = window.API_URL || "http://localhost:3000/api";
     </script>
     <script src="js/bonus.js"></script>
+    <script src="js/leaderboard.js"></script>
   </body>
 </html>

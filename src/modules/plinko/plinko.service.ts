@@ -4,6 +4,7 @@ import { User } from "../users/models/users.model";
 import { PlinkoDrop } from "./models/plinko-drops/plinko-drops.model";
 import { PlinkoResult } from "./models/plinko-results/plinko-results.model";
 import { HttpError } from "../../helpers";
+import leaderboardService from "../leaderboard/leaderboard.service";
 
 export class PlinkoService {
   private static readonly MULTIPLIERS = {
@@ -212,6 +213,17 @@ export class PlinkoService {
       }
 
       await session.commitTransaction();
+
+      const isWin = totalWin > totalBet;
+      const netWin = totalWin - totalBet;
+      leaderboardService
+        .updateStats(user._id, totalBet, netWin, isWin)
+        .catch((err) => {
+          console.error("Leaderboard update failed", {
+            userId: user._id.toString(),
+            error: err,
+          });
+        });
 
       return {
         drops: dropsResults.map((r) => ({

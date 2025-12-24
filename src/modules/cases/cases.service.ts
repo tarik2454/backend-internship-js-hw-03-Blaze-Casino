@@ -17,6 +17,7 @@ import {
 import { generateRoll } from "./cases.utils";
 import { IUser } from "../users/models/users.types";
 import { HttpError } from "../../helpers/index";
+import leaderboardService from "../leaderboard/leaderboard.service";
 
 const toPopulatedCaseItem = (
   doc: Document
@@ -151,6 +152,17 @@ class CasesService {
       );
 
       await session.commitTransaction();
+
+      const isWin = winningItem.value > caseToOpen.price;
+      const netWin = isWin ? winningItem.value - caseToOpen.price : 0;
+      leaderboardService
+        .updateStats(user._id, caseToOpen.price, netWin, isWin)
+        .catch((err) => {
+          console.error("Leaderboard update failed", {
+            userId: user._id.toString(),
+            error: err,
+          });
+        });
 
       const wonItem: WonItem = {
         id: winningItem._id.toString(),

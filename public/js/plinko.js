@@ -74,7 +74,6 @@ document.addEventListener("DOMContentLoaded", () => {
         currentMultipliers = data.multipliers || [];
       }
     } catch (error) {
-      console.error("Failed to load multipliers:", error);
       currentMultipliers = getDefaultMultipliers(lines, risk);
     }
   }
@@ -173,7 +172,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const data = await response.json();
-        console.log("Drop result:", data);
 
         const finalBalance =
           data.newBalance !== undefined
@@ -218,7 +216,6 @@ document.addEventListener("DOMContentLoaded", () => {
           winAmount: data.totalWin,
         });
       } catch (error) {
-        console.error("Error:", error);
         alert(error.message);
         if (playBtn) playBtn.disabled = false;
       }
@@ -501,7 +498,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     } catch (error) {
-      console.error("Failed to load history:", error);
     }
   }
 
