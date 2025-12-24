@@ -1,5 +1,6 @@
 import { HydratedDocument, Types } from "mongoose";
 import { IUser } from "../users/models/users.types";
+import { User } from "../users/models/users.model";
 import { BonusStatusResponse, ClaimBonusResponse } from "./bonus.types";
 import { HttpError } from "../../helpers/index";
 import { BonusClaim } from "./models/bonus-claims/bonus-claims.model";
@@ -24,6 +25,15 @@ class BonusService {
     return lastClaim?.claimedAt || null;
   }
 
+  private async getLastClaim(userId: Types.ObjectId) {
+    const lastClaim = await BonusClaim.findOne({ userId })
+      .sort({ claimedAt: -1 })
+      .select("usedWagered usedGamesPlayed")
+      .lean();
+
+    return lastClaim || null;
+  }
+
   private async getNextClaimAt(
     userId: Types.ObjectId,
     cooldownSeconds: number
@@ -40,13 +50,66 @@ class BonusService {
     return nextClaim > now ? nextClaim : now;
   }
 
+  private calculateBonus(
+    user: HydratedDocument<IUser>,
+    settings: {
+      baseAmount: number;
+      wagerBonusStep: number;
+      wagerBonusAmount: number;
+      gamesBonusStep: number;
+      gamesBonusAmount: number;
+    },
+    usedWagered = 0,
+    usedGamesPlayed = 0
+  ) {
+    const baseAmount = settings.baseAmount;
+    const availableWagered = Math.max(
+      0,
+      (user.totalWagered || 0) - usedWagered
+    );
+    const wagerBonus =
+      Math.floor(
+        (availableWagered / settings.wagerBonusStep) *
+          settings.wagerBonusAmount *
+          100
+      ) / 100;
+
+    const availableGamesPlayed = Math.max(
+      0,
+      (user.gamesPlayed || 0) - usedGamesPlayed
+    );
+    const gamesBonus =
+      Math.floor(availableGamesPlayed / settings.gamesBonusStep) *
+      settings.gamesBonusAmount;
+
+    const amount =
+      Math.floor((baseAmount + wagerBonus + gamesBonus) * 100) / 100;
+
+    const usedWageredForBonus = availableWagered;
+    const usedGamesPlayedForBonus = availableGamesPlayed;
+
+    return {
+      baseAmount,
+      wagerBonus,
+      gamesBonus,
+      amount,
+      usedWagered: usedWagered + usedWageredForBonus,
+      usedGamesPlayed: usedGamesPlayed + usedGamesPlayedForBonus,
+    };
+  }
+
   async getStatus(user: HydratedDocument<IUser>): Promise<BonusStatusResponse> {
     const settings = await this.getSettings();
+    const lastClaim = await this.getLastClaim(user._id);
+    const usedWagered = lastClaim?.usedWagered || 0;
+    const usedGamesPlayed = lastClaim?.usedGamesPlayed || 0;
 
-    const baseAmount = settings.baseAmount;
-    const wagerBonus = Math.floor((user.totalWagered || 0) * settings.wagerBonusRate * 100) / 100;
-    const gamesBonus = Math.floor((user.gamesPlayed || 0) * settings.gamesBonusAmount * 100) / 100;
-    const amount = baseAmount + wagerBonus + gamesBonus;
+    const bonus = this.calculateBonus(
+      user,
+      settings,
+      usedWagered,
+      usedGamesPlayed
+    );
 
     const nextClaimAt = await this.getNextClaimAt(
       user._id,
@@ -55,10 +118,10 @@ class BonusService {
 
     return {
       nextClaimAt: nextClaimAt.toISOString(),
-      amount,
-      baseAmount,
-      wagerBonus,
-      gamesBonus,
+      amount: bonus.amount,
+      baseAmount: bonus.baseAmount,
+      wagerBonus: bonus.wagerBonus,
+      gamesBonus: bonus.gamesBonus,
     };
   }
 
@@ -85,18 +148,35 @@ class BonusService {
       }
     }
 
-    const baseAmount = settings.baseAmount;
-    const wagerBonus = Math.floor((user.totalWagered || 0) * settings.wagerBonusRate * 100) / 100;
-    const gamesBonus = Math.floor((user.gamesPlayed || 0) * settings.gamesBonusAmount * 100) / 100;
-    const amount = baseAmount + wagerBonus + gamesBonus;
+    const lastClaim = await this.getLastClaim(user._id);
+    const usedWagered = lastClaim?.usedWagered || 0;
+    const usedGamesPlayed = lastClaim?.usedGamesPlayed || 0;
 
+    const bonus = this.calculateBonus(
+      user,
+      settings,
+      usedWagered,
+      usedGamesPlayed
+    );
     const oldBalance = user.balance;
-    user.balance += amount;
-    await user.save();
+
+    const updatedUser = await User.findByIdAndUpdate(
+      user._id,
+      {
+        $inc: { balance: bonus.amount },
+      },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      throw HttpError(404, "User not found");
+    }
 
     const claim = await BonusClaim.create({
       userId: user._id,
-      amount,
+      amount: bonus.amount,
+      usedWagered: bonus.usedWagered,
+      usedGamesPlayed: bonus.usedGamesPlayed,
       claimedAt: now,
     });
 
@@ -115,8 +195,8 @@ class BonusService {
           balance: oldBalance,
         },
         newValue: {
-          balance: user.balance,
-          amount,
+          balance: updatedUser.balance,
+          amount: bonus.amount,
           nextClaimAt: nextClaimAt.toISOString(),
         },
         ipAddress,
@@ -127,8 +207,8 @@ class BonusService {
       });
 
     return {
-      amount,
-      balance: user.balance,
+      amount: bonus.amount,
+      balance: updatedUser.balance,
       nextClaimAt: nextClaimAt.toISOString(),
     };
   }

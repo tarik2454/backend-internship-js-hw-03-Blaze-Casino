@@ -12,6 +12,16 @@ const bonusClaimSchema = new Schema<IBonusClaim>(
       type: Number,
       required: true,
     },
+    usedWagered: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+    usedGamesPlayed: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
     claimedAt: {
       type: Date,
       default: Date.now,

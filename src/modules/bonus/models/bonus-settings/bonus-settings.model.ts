@@ -7,21 +7,37 @@ const bonusSettingSchema = new Schema<IBonusSetting>(
       type: Number,
       default: 10,
       required: true,
+      min: 0,
     },
     cooldownSeconds: {
       type: Number,
       default: 60,
       required: true,
+      min: 0,
     },
-    wagerBonusRate: {
+    wagerBonusAmount: {
       type: Number,
       default: 0.001,
       required: true,
+      min: 0,
+    },
+    wagerBonusStep: {
+      type: Number,
+      default: 1,
+      required: true,
+      min: 0.01,
     },
     gamesBonusAmount: {
       type: Number,
       default: 1,
       required: true,
+      min: 0,
+    },
+    gamesBonusStep: {
+      type: Number,
+      default: 10,
+      required: true,
+      min: 1,
     },
   },
   { versionKey: false, timestamps: false }
