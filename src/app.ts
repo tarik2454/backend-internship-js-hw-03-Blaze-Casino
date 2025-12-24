@@ -27,6 +27,20 @@ app.use(
   })
 );
 app.use(express.json({ limit: "10kb" }));
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (
+    req.path.includes("swagger-ui-init.js") ||
+    req.path.includes("swagger-ui.css") ||
+    req.path.includes("swagger-ui-bundle.js") ||
+    req.path.includes("swagger-ui-standalone-preset.js")
+  ) {
+    res.status(404).json({ message: "Not found" });
+    return;
+  }
+  next();
+});
+
 app.use(express.static(path.join(__dirname, "../public")));
 
 app.get("/api-docs/swagger.json", (_req: Request, res: Response) => {
@@ -48,13 +62,17 @@ const swaggerUiOptions = {
   },
 };
 
-app.use("/api-docs", (req: Request, res: Response, next: NextFunction) => {
+app.use((req: Request, res: Response, next: NextFunction) => {
   if (
-    req.path.endsWith(".js") ||
-    req.path.endsWith(".css") ||
-    req.path.endsWith(".map") ||
-    req.path.includes("swagger-ui") ||
-    req.path.includes("favicon")
+    req.path.includes("swagger-ui-init.js") ||
+    req.path.includes("swagger-ui.css") ||
+    req.path.includes("swagger-ui-bundle.js") ||
+    req.path.includes("swagger-ui-standalone-preset.js") ||
+    (req.path.startsWith("/api-docs") &&
+      (req.path.endsWith(".js") ||
+        req.path.endsWith(".css") ||
+        req.path.endsWith(".map") ||
+        req.path.includes("favicon")))
   ) {
     res.status(404).json({ message: "Not found" });
     return;
