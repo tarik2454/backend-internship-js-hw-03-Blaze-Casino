@@ -6,6 +6,26 @@ const getLeaderboardApiUrl = () => {
   return "http://localhost:3000/api";
 };
 
+/**
+ * Escapes HTML special characters to prevent XSS attacks
+ * @param {string} text - The text to escape
+ * @returns {string} - The escaped text
+ */
+function escapeHtml(text) {
+  if (typeof text !== "string") {
+    return String(text);
+  }
+  const map = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#x27;",
+    "/": "&#x2F;",
+  };
+  return text.replace(/[&<>"'/]/g, (char) => map[char]);
+}
+
 let currentPeriod = "all";
 
 function getLeaderboardElements() {
@@ -69,10 +89,16 @@ async function loadLeaderboard(period = "all") {
         (player) => `
       <tr style="border-bottom: 1px solid rgba(102, 126, 234, 0.1);">
         <td style="padding: 0.75rem; font-weight: 600;">#${player.rank}</td>
-        <td style="padding: 0.75rem;">${player.username}</td>
-        <td style="padding: 0.75rem; text-align: right;">$${player.totalWagered.toFixed(2)}</td>
-        <td style="padding: 0.75rem; text-align: right;">${player.gamesPlayed}</td>
-        <td style="padding: 0.75rem; text-align: right;">${player.winRate.toFixed(2)}%</td>
+        <td style="padding: 0.75rem;">${escapeHtml(player.username)}</td>
+        <td style="padding: 0.75rem; text-align: right;">$${player.totalWagered.toFixed(
+          2
+        )}</td>
+        <td style="padding: 0.75rem; text-align: right;">${
+          player.gamesPlayed
+        }</td>
+        <td style="padding: 0.75rem; text-align: right;">${player.winRate.toFixed(
+          2
+        )}%</td>
       </tr>
     `
       )
@@ -118,7 +144,9 @@ async function loadLeaderboard(period = "all") {
         </div>
       `;
     } else {
-      currentUserEl.innerHTML = "";
+      if (currentUserEl) {
+        currentUserEl.innerHTML = "";
+      }
     }
   } catch (err) {
     const { tableBody } = getLeaderboardElements();
@@ -154,7 +182,7 @@ let buttonsInitialized = false;
 
 function setupLeaderboardPeriodButtons() {
   if (buttonsInitialized) return;
-  
+
   const { periodButtons } = getLeaderboardElements();
   if (!periodButtons || periodButtons.length === 0) {
     return;
@@ -170,7 +198,7 @@ function setupLeaderboardPeriodButtons() {
       }
     });
   });
-  
+
   buttonsInitialized = true;
 }
 
@@ -186,6 +214,7 @@ document.addEventListener("leaderboard:shown", () => {
 });
 
 document.addEventListener("leaderboard:hidden", () => {
+  // Leaderboard hidden - no action needed
 });
 
 if (document.readyState === "loading") {
@@ -195,4 +224,3 @@ if (document.readyState === "loading") {
 } else {
   initLeaderboard();
 }
-

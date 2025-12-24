@@ -75,7 +75,7 @@ class LeaderboardService {
       .lean();
 
     const players: LeaderboardPlayer[] = stats.map((stat, index) => {
-      const user = stat.userId as unknown as { username: string };
+      const user = stat.userId as unknown as { _id: Types.ObjectId; username: string };
       const winRate =
         stat.gamesPlayed > 0
           ? Math.round((stat.gamesWon / stat.gamesPlayed) * 100 * 100) / 100
@@ -102,7 +102,10 @@ class LeaderboardService {
         .lean();
 
       if (currentUserStat) {
-        const user = currentUserStat.userId as unknown as { username: string };
+        const user = currentUserStat.userId as unknown as {
+          _id: Types.ObjectId;
+          username: string;
+        };
         const winRate =
           currentUserStat.gamesPlayed > 0
             ? Math.round(
@@ -110,7 +113,12 @@ class LeaderboardService {
               ) / 100
             : 0;
 
-        let rank = stats.findIndex((s) => s.userId.toString() === currentUserId.toString()) + 1;
+        let rank =
+          stats.findIndex(
+            (s) =>
+              (s.userId as unknown as { _id: Types.ObjectId })._id.toString() ===
+              currentUserId.toString()
+          ) + 1;
 
         if (rank === 0) {
           const betterCount = await LeaderboardStats.countDocuments({

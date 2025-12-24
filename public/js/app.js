@@ -4,6 +4,27 @@ let token = localStorage.getItem("token");
 let currentUser = null;
 let currentMinesGameId = null;
 
+/**
+ * Escapes HTML special characters to prevent XSS attacks
+ * @param {string} text - The text to escape
+ * @returns {string} - The escaped text
+ */
+function escapeHtml(text) {
+  if (typeof text !== "string") {
+    return String(text);
+  }
+  const map = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#x27;",
+    "/": "&#x2F;",
+  };
+  return text.replace(/[&<>"'/]/g, (char) => map[char]);
+}
+
+
 const authSection = document.getElementById("auth-section");
 const mainSection = document.getElementById("main-section");
 const userInfoEl = document.getElementById("user-info");
@@ -550,10 +571,10 @@ function renderUser() {
   window.renderUser = renderUser;
   userInfoEl.innerHTML = `
     <div>
-      <h2 style="font-size: 1.25rem; font-weight: 600;">${
+      <h2 style="font-size: 1.25rem; font-weight: 600;">${escapeHtml(
         currentUser.username
-      }</h2>
-      <p style="color: var(--text-dim);">${currentUser.email}</p>
+      )}</h2>
+      <p style="color: var(--text-dim);">${escapeHtml(currentUser.email)}</p>
     </div>
     <div style="text-align: right;">
       <div style="font-size: 1.5rem; color: var(--accent-success); font-weight: 700;">$${currentUser.balance.toFixed(

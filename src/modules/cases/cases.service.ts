@@ -19,9 +19,7 @@ import { IUser } from "../users/models/users.types";
 import { HttpError } from "../../helpers/index";
 import leaderboardService from "../leaderboard/leaderboard.service";
 
-const toPopulatedCaseItem = (
-  doc: Document
-): PopulatedCaseItem => {
+const toPopulatedCaseItem = (doc: Document): PopulatedCaseItem => {
   return doc as unknown as PopulatedCaseItem;
 };
 
@@ -154,7 +152,7 @@ class CasesService {
       await session.commitTransaction();
 
       const isWin = winningItem.value > caseToOpen.price;
-      const netWin = isWin ? winningItem.value - caseToOpen.price : 0;
+      const netWin = winningItem.value - caseToOpen.price;
       leaderboardService
         .updateStats(user._id, caseToOpen.price, netWin, isWin)
         .catch((err) => {
