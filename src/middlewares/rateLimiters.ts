@@ -1,8 +1,20 @@
 import rateLimit from "express-rate-limit";
-import { RequestWithUser } from "../types";
+import { Request } from "express";
 
-const getUserKey = (req: RequestWithUser): string => {
-  return req.user?._id?.toString() || req.ip || "unknown";
+const getUserKey = (
+  req: Request & { user?: { _id?: { toString(): string } } }
+): string => {
+  // Try to get user ID first (for authenticated requests)
+  if (req.user?._id) {
+    return req.user._id.toString();
+  }
+  // Fallback to IP address
+  const ip =
+    (req as any).ip ||
+    req.socket?.remoteAddress ||
+    req.headers["x-forwarded-for"] ||
+    "unknown";
+  return typeof ip === "string" ? ip.split(",")[0].trim() : String(ip);
 };
 
 export const loginLimiter = rateLimit({

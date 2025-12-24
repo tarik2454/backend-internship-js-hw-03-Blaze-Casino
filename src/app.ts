@@ -15,6 +15,8 @@ import { auditRouter } from "./modules/audit/audit.router";
 
 const app = express();
 
+app.set("trust proxy", true);
+
 const formatsLogger = app.get("env") === "development" ? "dev" : "short";
 
 app.use(logger(formatsLogger));
