@@ -1,8 +1,7 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import path from "path";
 import logger from "morgan";
 import cors from "cors";
-import helmet from "helmet";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger";
 import { authRouter } from "./modules/auth/auth.router";
@@ -18,46 +17,10 @@ const app = express();
 
 const formatsLogger = app.get("env") === "development" ? "dev" : "short";
 
-app.use(
-  helmet({
-    contentSecurityPolicy:
-      process.env.NODE_ENV === "development"
-        ? false
-        : {
-            directives: {
-              defaultSrc: ["'self'"],
-              styleSrc: [
-                "'self'",
-                "'unsafe-inline'",
-                "https://unpkg.com",
-                "https://cdn.jsdelivr.net",
-              ],
-              scriptSrc: [
-                "'self'",
-                "'unsafe-inline'",
-                "'unsafe-eval'",
-                "https://unpkg.com",
-                "https://cdn.jsdelivr.net",
-              ],
-              connectSrc: [
-                "'self'",
-                "https://unpkg.com",
-                "https://cdn.jsdelivr.net",
-              ],
-              imgSrc: ["'self'", "data:", "https:"],
-              fontSrc: ["'self'", "https:", "data:"],
-            },
-          },
-    crossOriginEmbedderPolicy: false,
-  })
-);
 app.use(logger(formatsLogger));
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === "development"
-        ? true
-        : process.env.ALLOWED_ORIGINS?.split(",") || false,
+    origin: true,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -65,6 +28,11 @@ app.use(
 );
 app.use(express.json({ limit: "10kb" }));
 app.use(express.static(path.join(__dirname, "../public")));
+
+app.get("/api-docs/swagger.json", (_req: Request, res: Response) => {
+  res.setHeader("Content-Type", "application/json");
+  res.send(swaggerSpec);
+});
 
 const swaggerUiOptions = {
   customCss: ".swagger-ui .topbar { display: none }",
@@ -76,14 +44,24 @@ const swaggerUiOptions = {
   ],
   swaggerOptions: {
     persistAuthorization: true,
+    url: "/api-docs/swagger.json",
   },
 };
 
-app.use(
-  "/api-docs",
-  swaggerUi.serve,
-  swaggerUi.setup(swaggerSpec, swaggerUiOptions)
-);
+app.use("/api-docs", (req: Request, res: Response, next: NextFunction) => {
+  if (
+    req.path.endsWith(".js") ||
+    req.path.endsWith(".css") ||
+    req.path.endsWith(".map")
+  ) {
+    res.status(404).json({ message: "Not found" });
+    return;
+  }
+  next();
+});
+
+app.use("/api-docs", swaggerUi.serve);
+app.get("/api-docs", swaggerUi.setup(swaggerSpec, swaggerUiOptions));
 
 app.use("/api/auth/login", loginLimiter);
 app.use("/api/auth/register", registerLimiter);
