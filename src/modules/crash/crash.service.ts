@@ -9,11 +9,11 @@ import {
   CrashBetHistory,
 } from "./crash.types";
 import { HttpError } from "../../helpers";
-import { CrashGame } from "./models/crash-games/crash-games.model";
+import { Crash } from "./models/crash/crash.model";
 import { CrashBet } from "./models/crash-bets/crash-bets.model";
-import { ICrashGame } from "./models/crash-games/crash-games.types";
+import { ICrash } from "./models/crash/crash.types";
 import auditService from "../audit/audit.service";
-import crashManager, { CrashState } from "./crash.manager";
+import crashManager from "./crash.manager";
 
 class CrashService {
   async betCrash(
@@ -37,20 +37,11 @@ class CrashService {
       );
     }
 
-    let currentGame = await CrashGame.findOne({
-      status: { $in: ["waiting", "running"] },
-    }).sort({ createdAt: -1 });
+    const gameId = await crashManager.createGameForUser(user._id.toString());
+    const currentGame = await Crash.findById(gameId);
 
     if (!currentGame) {
-      await crashManager.createAndStartGame();
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      currentGame = await CrashGame.findOne({
-        status: { $in: ["waiting", "running"] },
-      }).sort({ createdAt: -1 });
-
-      if (!currentGame) {
-        throw HttpError(503, "Failed to create game. Please try again.");
-      }
+      throw HttpError(503, "Failed to create game. Please try again.");
     }
 
     if (currentGame.status !== "waiting") {
@@ -113,7 +104,7 @@ class CrashService {
       await session.commitTransaction();
 
       if (currentGame.status === "waiting") {
-        await crashManager.startCurrentGame();
+        await crashManager.startGame(gameId);
       }
 
       auditService
@@ -174,7 +165,7 @@ class CrashService {
         throw HttpError(404, "Active bet not found");
       }
 
-      const game = await CrashGame.findById(bet.gameId).session(session);
+      const game = await Crash.findById(bet.gameId).session(session);
 
       if (!game) {
         throw HttpError(404, "Game not found");
@@ -247,7 +238,7 @@ class CrashService {
 
       await session.commitTransaction();
 
-      await crashManager.stopCurrentGame();
+      await crashManager.stopGame(bet.gameId.toString());
 
       auditService
         .log({
@@ -284,30 +275,22 @@ class CrashService {
     }
   }
 
-  private async getCurrentMultiplier(game: ICrashGame): Promise<number | null> {
-    const managerState = crashManager.getState();
-    if (
-      managerState.gameId === game._id.toString() &&
-      managerState.state === CrashState.RUNNING
-    ) {
-      return managerState.multiplier;
-    }
-
+  private async getCurrentMultiplier(game: ICrash): Promise<number | null> {
     if (game.status !== "running" || !game.startedAt) {
       return null;
     }
 
-    const elapsed = Math.max(0, Date.now() - game.startedAt.getTime());
-    const multiplier = Math.pow(1.0024, elapsed / 100);
-    return Math.max(1.0, Math.floor(multiplier * 100) / 100);
+    return await crashManager.getOrCalculateMultiplier(
+      game._id.toString(),
+      game.startedAt
+    );
   }
 
   async getCrashHistory(
-    _user: HydratedDocument<IUser>,
     limit: number,
     offset: number
   ): Promise<GetCrashHistoryResponse> {
-    const games = await CrashGame.find({
+    const games = await Crash.find({
       status: "crashed",
     })
       .sort({ createdAt: -1 })
@@ -327,22 +310,13 @@ class CrashService {
   }
 
   async getCurrentCrash(
-    user?: HydratedDocument<IUser>
+    user: HydratedDocument<IUser>
   ): Promise<GetCurrentCrashResponse> {
-    let currentGame = await CrashGame.findOne({
-      status: { $in: ["waiting", "running"] },
-    }).sort({ createdAt: -1 });
+    const gameId = await crashManager.createGameForUser(user._id.toString());
+    const currentGame = await Crash.findById(gameId);
 
     if (!currentGame) {
-      await crashManager.createAndStartGame();
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      currentGame = await CrashGame.findOne({
-        status: { $in: ["waiting", "running"] },
-      }).sort({ createdAt: -1 });
-
-      if (!currentGame) {
-        throw HttpError(503, "Failed to create game. Please try again.");
-      }
+      throw HttpError(503, "Failed to create game. Please try again.");
     }
 
     let multiplier: number | undefined;
@@ -350,20 +324,18 @@ class CrashService {
       multiplier = (await this.getCurrentMultiplier(currentGame)) || undefined;
     }
 
-    let myBet: { betId: string; amount: number } | undefined;
-    if (user) {
-      const userBet = await CrashBet.findOne({
-        gameId: currentGame._id,
-        userId: user._id,
-        status: "active",
-      });
+    const userBet = await CrashBet.findOne({
+      gameId: currentGame._id,
+      userId: user._id,
+      status: "active",
+    });
 
-      if (userBet) {
-        myBet = {
-          betId: userBet._id.toString(),
-          amount: userBet.amount,
-        };
-      }
+    let myBet: { betId: string; amount: number } | undefined;
+    if (userBet) {
+      myBet = {
+        betId: userBet._id.toString(),
+        amount: userBet.amount,
+      };
     }
 
     return {
@@ -371,7 +343,6 @@ class CrashService {
       state: currentGame.status,
       multiplier,
       serverSeedHash: currentGame.serverSeedHash,
-      bets: [],
       myBet,
     };
   }

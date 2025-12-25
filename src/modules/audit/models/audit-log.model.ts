@@ -34,6 +34,8 @@ const auditLogSchema = new Schema<IAuditLog>(
         "CaseOpening",
         "BonusClaim",
         "LeaderboardStats",
+        "CrashBet",
+        "Crash",
       ],
     },
     entityId: {

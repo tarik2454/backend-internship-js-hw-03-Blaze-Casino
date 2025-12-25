@@ -1,4 +1,4 @@
-import { CrashGame } from "./models/crash-games/crash-games.model";
+import { Crash } from "./models/crash/crash.model";
 import { CrashBet } from "./models/crash-bets/crash-bets.model";
 import { ICrashBet } from "./models/crash-bets/crash-bets.types";
 import crashWebSocketHandler from "./crash.ws.handler";
@@ -15,35 +15,54 @@ export enum CrashState {
   CRASHED = "crashed",
 }
 
-class CrashManager {
-  private currentState: CrashState = CrashState.WAITING;
-  private currentMultiplier = 1.0;
-  private currentGameId: string | null = null;
-  private startedAt: number | null = null;
-  private crashPoint = 0;
-  private tickInterval: NodeJS.Timeout | null = null;
+interface GameState {
+  state: CrashState;
+  multiplier: number;
+  startedAt: number | null;
+  crashPoint: number;
+  tickInterval: NodeJS.Timeout | null;
+}
 
+class CrashManager {
+  private games: Map<string, GameState> = new Map();
   private TICK_RATE = 100;
 
-  async createAndStartGame() {
-    const activeGame = await CrashGame.findOne({
-      status: { $in: [CrashState.WAITING, CrashState.RUNNING] },
-    }).sort({ createdAt: -1 });
+  async createGameForUser(userId: string): Promise<string> {
+    const activeBet = await CrashBet.findOne({
+      userId,
+      status: "active",
+    });
 
-    if (activeGame) {
-      if (activeGame.status === CrashState.RUNNING && activeGame.startedAt) {
-        this.currentGameId = activeGame._id.toString();
-        this.crashPoint = activeGame.crashPoint;
-        this.currentState = CrashState.RUNNING;
-        this.startedAt = activeGame.startedAt.getTime();
-        this.resumeGame();
-        return;
-      }
-      if (activeGame.status === CrashState.WAITING) {
-        this.currentGameId = activeGame._id.toString();
-        this.crashPoint = activeGame.crashPoint || 0;
-        this.currentState = CrashState.WAITING;
-        return;
+    if (activeBet && activeBet.gameId) {
+      const gameIdString =
+        activeBet.gameId instanceof mongoose.Types.ObjectId
+          ? activeBet.gameId.toString()
+          : String(activeBet.gameId);
+
+      const game = await Crash.findById(gameIdString);
+      if (
+        game &&
+        (game.status === CrashState.WAITING ||
+          game.status === CrashState.RUNNING)
+      ) {
+        if (!this.games.has(gameIdString)) {
+          this.games.set(gameIdString, {
+            state: game.status as CrashState,
+            multiplier:
+              game.status === CrashState.RUNNING && game.startedAt
+                ? this.calculateMultiplier(
+                    Date.now() - game.startedAt.getTime()
+                  )
+                : 1.0,
+            startedAt: game.startedAt ? game.startedAt.getTime() : null,
+            crashPoint: game.crashPoint,
+            tickInterval: null,
+          });
+          if (game.status === CrashState.RUNNING && game.startedAt) {
+            this.startTick(gameIdString);
+          }
+        }
+        return gameIdString;
       }
     }
 
@@ -53,7 +72,7 @@ class CrashManager {
     const nonce = Math.floor(Math.random() * 1000000);
     const crashPoint = generateCrashPoint(serverSeed, clientSeed, nonce);
 
-    const game = await CrashGame.create({
+    const game = await Crash.create({
       crashPoint,
       serverSeed,
       serverSeedHash,
@@ -62,62 +81,74 @@ class CrashManager {
       status: CrashState.WAITING,
     });
 
-    this.currentGameId = game._id.toString();
-    this.crashPoint = crashPoint;
-    this.currentState = CrashState.WAITING;
-    this.currentMultiplier = 1.0;
-
-    if (this.currentGameId) {
-      crashWebSocketHandler.emitGameStart(this.currentGameId, serverSeedHash);
-    }
-  }
-
-  async startCurrentGame() {
-    if (!this.currentGameId || this.currentState !== CrashState.WAITING) {
-      return;
-    }
-    await this.startGame();
-  }
-
-  private async startGame() {
-    if (!this.currentGameId) return;
-
-    this.currentState = CrashState.RUNNING;
-    this.startedAt = Date.now();
-
-    await CrashGame.findByIdAndUpdate(this.currentGameId, {
-      status: CrashState.RUNNING,
-      startedAt: new Date(this.startedAt),
+    const gameId = game._id.toString();
+    this.games.set(gameId, {
+      state: CrashState.WAITING,
+      multiplier: 1.0,
+      startedAt: null,
+      crashPoint,
+      tickInterval: null,
     });
 
-    this.tick();
+    return gameId;
   }
 
-  private resumeGame() {
-    this.tick();
+  async startGame(gameId: string): Promise<void> {
+    const gameState = this.games.get(gameId);
+    if (!gameState || gameState.state !== CrashState.WAITING) {
+      return;
+    }
+
+    gameState.state = CrashState.RUNNING;
+    gameState.startedAt = Date.now();
+
+    await Crash.findByIdAndUpdate(gameId, {
+      status: CrashState.RUNNING,
+      startedAt: new Date(gameState.startedAt),
+    });
+
+    this.startTick(gameId);
   }
 
-  private tick() {
-    if (this.tickInterval) clearTimeout(this.tickInterval);
+  private startTick(gameId: string): void {
+    const gameState = this.games.get(gameId);
+    if (!gameState) return;
+
+    if (gameState.tickInterval) {
+      clearTimeout(gameState.tickInterval);
+    }
 
     const tickFn = async () => {
-      if (!this.startedAt || this.currentState !== CrashState.RUNNING) return;
-
-      const elapsed = Date.now() - this.startedAt;
-      this.currentMultiplier = this.calculateMultiplier(elapsed);
-
-      if (this.currentMultiplier >= this.crashPoint) {
-        await this.crash();
+      const currentState = this.games.get(gameId);
+      if (
+        !currentState ||
+        !currentState.startedAt ||
+        currentState.state !== CrashState.RUNNING
+      ) {
         return;
       }
 
-      crashWebSocketHandler.emitGameTick(this.currentMultiplier, elapsed);
-      await this.checkAutoCashout();
+      const elapsed = Date.now() - currentState.startedAt;
+      currentState.multiplier = this.calculateMultiplier(elapsed);
 
-      this.tickInterval = setTimeout(tickFn, this.TICK_RATE);
+      if (currentState.multiplier >= currentState.crashPoint) {
+        await this.crash(gameId);
+        return;
+      }
+
+      crashWebSocketHandler.emitGameTick(
+        gameId,
+        currentState.multiplier,
+        elapsed
+      );
+      await this.checkAutoCashout(gameId);
+
+      currentState.tickInterval = setTimeout(tickFn, this.TICK_RATE);
+      this.games.set(gameId, currentState);
     };
 
-    this.tickInterval = setTimeout(tickFn, this.TICK_RATE);
+    gameState.tickInterval = setTimeout(tickFn, this.TICK_RATE);
+    this.games.set(gameId, gameState);
   }
 
   private calculateMultiplier(elapsedMs: number): number {
@@ -125,27 +156,27 @@ class CrashManager {
     return Math.floor(multiplier * 100) / 100;
   }
 
-  private async checkAutoCashout() {
-    if (!this.currentGameId) return;
-
+  private async checkAutoCashout(gameId: string): Promise<void> {
     const betsToCashout = await CrashBet.find({
-      gameId: this.currentGameId,
+      gameId,
       status: "active",
-      autoCashout: { $lte: this.currentMultiplier, $ne: null },
+      autoCashout: { $lte: this.games.get(gameId)?.multiplier || 0, $ne: null },
     });
 
     for (const bet of betsToCashout) {
       try {
-        if (bet.autoCashout === undefined || bet.autoCashout === null) {
+        if (bet.autoCashout === undefined) {
           continue;
         }
-        const multiplier = bet.autoCashout;
-        await this.processCashout(bet, multiplier);
+        await this.processCashout(bet, bet.autoCashout);
       } catch (error) {}
     }
   }
 
-  private async processCashout(bet: ICrashBet, multiplier: number) {
+  private async processCashout(
+    bet: ICrashBet,
+    multiplier: number
+  ): Promise<void> {
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -184,46 +215,49 @@ class CrashManager {
     }
   }
 
-  private async crash() {
-    if (this.tickInterval) {
-      if (this.tickInterval instanceof Object) {
-        clearTimeout(this.tickInterval);
-      } else {
-        clearInterval(this.tickInterval);
-      }
-    }
-    this.currentState = CrashState.CRASHED;
+  private async crash(gameId: string): Promise<void> {
+    const gameState = this.games.get(gameId);
+    if (!gameState) return;
 
-    const game = await CrashGame.findById(this.currentGameId);
+    if (gameState.tickInterval) {
+      clearTimeout(gameState.tickInterval);
+    }
+
+    gameState.state = CrashState.CRASHED;
+
+    const game = await Crash.findById(gameId);
     if (!game) return;
 
-    await CrashGame.findByIdAndUpdate(this.currentGameId, {
+    await Crash.findByIdAndUpdate(gameId, {
       status: CrashState.CRASHED,
       crashedAt: new Date(),
     });
 
     await CrashBet.updateMany(
-      { gameId: this.currentGameId, status: "active" },
+      { gameId, status: "active" },
       { $set: { status: "lost" } }
     );
 
     crashWebSocketHandler.emitGameCrash(
-      this.crashPoint,
+      gameId,
+      gameState.crashPoint,
       game.serverSeed,
       game.serverSeed
     );
+
+    this.games.delete(gameId);
   }
 
-  async stopCurrentGame() {
-    if (this.tickInterval) {
-      clearTimeout(this.tickInterval);
-      this.tickInterval = null;
+  async stopGame(gameId: string): Promise<void> {
+    const gameState = this.games.get(gameId);
+    if (!gameState) return;
+
+    if (gameState.tickInterval) {
+      clearTimeout(gameState.tickInterval);
     }
 
-    if (!this.currentGameId) return;
-
     const activeBets = await CrashBet.find({
-      gameId: this.currentGameId,
+      gameId,
       status: "active",
     });
 
@@ -234,38 +268,47 @@ class CrashManager {
     }
 
     await CrashBet.updateMany(
-      { gameId: this.currentGameId, status: "active" },
+      { gameId, status: "active" },
       { $set: { status: "lost" } }
     );
 
-    await CrashGame.findByIdAndUpdate(this.currentGameId, {
+    await Crash.findByIdAndUpdate(gameId, {
       status: CrashState.CRASHED,
       crashedAt: new Date(),
     });
 
-    const game = await CrashGame.findById(this.currentGameId);
+    const game = await Crash.findById(gameId);
     if (game) {
       crashWebSocketHandler.emitGameCrash(
-        this.crashPoint || 1.0,
+        gameId,
+        gameState.crashPoint || 1.0,
         game.serverSeed,
         game.serverSeed
       );
     }
 
-    this.currentState = CrashState.WAITING;
-    this.currentGameId = null;
-    this.currentMultiplier = 1.0;
-    this.startedAt = null;
-    this.crashPoint = 0;
+    this.games.delete(gameId);
   }
 
-  public getState() {
-    return {
-      state: this.currentState,
-      multiplier: this.currentMultiplier,
-      gameId: this.currentGameId,
-      startedAt: this.startedAt,
-    };
+  async getOrCalculateMultiplier(
+    gameId: string,
+    startedAt: Date
+  ): Promise<number | null> {
+    const gameState = this.games.get(gameId);
+    if (
+      gameState &&
+      gameState.state === CrashState.RUNNING &&
+      gameState.startedAt
+    ) {
+      return gameState.multiplier;
+    }
+
+    if (!startedAt) {
+      return null;
+    }
+
+    const elapsed = Math.max(0, Date.now() - startedAt.getTime());
+    return this.calculateMultiplier(elapsed);
   }
 }
 

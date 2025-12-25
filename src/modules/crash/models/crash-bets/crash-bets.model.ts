@@ -5,7 +5,7 @@ const crashBetSchema = new Schema<ICrashBet>(
   {
     gameId: {
       type: Schema.Types.ObjectId,
-      ref: "CrashGame",
+      ref: "Crash",
       required: true,
     },
     userId: {

@@ -45,8 +45,7 @@ const getCrashHistory = async (req: AuthenticatedRequest, res: Response) => {
   limit = Math.min(Number(limit), 10);
   offset = Math.max(Number(offset), 0);
 
-  const user = req.user;
-  const result = await crashService.getCrashHistory(user, limit, offset);
+  const result = await crashService.getCrashHistory(limit, offset);
   res.json(result);
 };
 

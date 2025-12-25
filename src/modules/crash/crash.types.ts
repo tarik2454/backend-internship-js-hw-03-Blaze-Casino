@@ -20,20 +20,11 @@ export interface GetCrashHistoryResponse {
   games: CrashGameHistory[];
 }
 
-export interface CrashBet {
-  betId: string;
-  userId: string;
-  userName?: string;
-  amount: number;
-  multiplier?: number;
-}
-
 export interface GetCurrentCrashResponse {
   gameId: string;
   state: "waiting" | "running" | "crashed";
   multiplier?: number;
   serverSeedHash: string;
-  bets: CrashBet[];
   myBet?: {
     betId: string;
     amount: number;

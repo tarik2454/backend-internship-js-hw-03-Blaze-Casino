@@ -58,11 +58,6 @@ document.addEventListener("DOMContentLoaded", () => {
       console.log("[Crash WS] Client disconnected");
     });
 
-    socket.on("game:start", (data) => {
-      console.log("[Crash WS] Received game:start", data);
-      handleGameStart(data);
-    });
-
     socket.on("game:tick", (data) => {
       if (data.elapsed % 1000 < 100) {
         console.log(`[Crash WS] Received game:tick - multiplier: ${data.multiplier.toFixed(2)}x, elapsed: ${data.elapsed}ms`);
@@ -81,37 +76,6 @@ document.addEventListener("DOMContentLoaded", () => {
       socket.disconnect();
       socket = null;
     }
-  }
-
-  function handleGameStart(data) {
-    if (crashTimeout) {
-      clearTimeout(crashTimeout);
-      crashTimeout = null;
-    }
-    // Only reset bet state if this is a different game
-    if (currentGameId && currentGameId !== data.gameId) {
-      currentBetId = null;
-      currentBetAmount = 0;
-      hasCashedOut = false; // Reset cashout flag for new game
-      cashedOutMultiplier = 0; // Reset cashed out multiplier
-    }
-    
-    currentGameId = data.gameId;
-    // Don't reset gameState if we have an active bet (game might be starting)
-    if (!currentBetId) {
-      gameState = "waiting";
-      currentMultiplier = 1.0;
-      hasCashedOut = false; // Reset cashout flag when new game starts
-      cashedOutMultiplier = 0; // Reset cashed out multiplier
-    }
-
-    // Hide win info when new game starts
-    const winInfoEl = document.getElementById("crash-win-info");
-    if (winInfoEl) {
-      winInfoEl.classList.add("hidden");
-    }
-
-    updateUI();
   }
 
   function handleGameTick(data) {
@@ -247,6 +211,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await response.json();
       currentGameId = data.gameId;
       gameState = data.state;
+
+      if (socket && socket.connected && currentGameId) {
+        socket.emit("subscribe:game", { gameId: currentGameId });
+      }
 
       // If game is crashed, reset state to allow new game
       if (gameState === "crashed") {
@@ -436,6 +404,10 @@ document.addEventListener("DOMContentLoaded", () => {
         currentBetId = newBetId;
         currentBetAmount = newBetAmount;
         currentGameId = newGameId;
+
+        if (socket && socket.connected && currentGameId) {
+          socket.emit("subscribe:game", { gameId: currentGameId });
+        }
 
         if (socket && socket.connected) {
           console.log("[Crash WS] Emitting bet:place", { amount, autoCashout });

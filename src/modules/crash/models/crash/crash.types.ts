@@ -1,6 +1,6 @@
 import { Document } from "mongoose";
 
-export interface ICrashGame extends Document {
+export interface ICrash extends Document {
   crashPoint: number;
   serverSeed: string;
   serverSeedHash: string;

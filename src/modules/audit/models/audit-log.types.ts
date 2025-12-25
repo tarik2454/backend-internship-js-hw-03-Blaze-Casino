@@ -21,7 +21,7 @@ export type EntityType =
   | "BonusClaim"
   | "LeaderboardStats"
   | "CrashBet"
-  | "CrashGame";
+  | "Crash";
 
 export interface IAuditLog extends Document {
   userId?: Types.ObjectId;

@@ -22,7 +22,7 @@ const getAuditLogs = async (
     "BonusClaim",
     "LeaderboardStats",
     "CrashBet",
-    "CrashGame",
+    "Crash",
   ];
 
   const entityType: EntityType | undefined =

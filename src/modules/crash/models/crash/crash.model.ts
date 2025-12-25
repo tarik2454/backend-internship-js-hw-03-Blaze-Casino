@@ -1,7 +1,7 @@
 import { Schema, model } from "mongoose";
-import { ICrashGame } from "./crash-games.types";
+import { ICrash } from "./crash.types";
 
-const crashGameSchema = new Schema<ICrashGame>(
+const crashSchema = new Schema<ICrash>(
   {
     crashPoint: {
       type: Number,
@@ -49,7 +49,7 @@ const crashGameSchema = new Schema<ICrashGame>(
   }
 );
 
-crashGameSchema.index({ status: 1, createdAt: -1 });
-crashGameSchema.index({ createdAt: -1 });
+crashSchema.index({ status: 1, createdAt: -1 });
+crashSchema.index({ createdAt: -1 });
 
-export const CrashGame = model<ICrashGame>("CrashGame", crashGameSchema);
+export const Crash = model<ICrash>("Crash", crashSchema);

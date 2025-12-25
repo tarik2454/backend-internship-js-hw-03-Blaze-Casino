@@ -1,7 +1,6 @@
 import { Server as SocketIOServer } from "socket.io";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
 import {
-  GameStartEvent,
   GameTickEvent,
   GameCrashEvent,
   BetPlaceEvent,
@@ -31,6 +30,10 @@ class CrashWebSocketHandler {
     crashNamespace.on("connection", (socket) => {
       console.log(`[Crash WS] Client connected: ${socket.id}`);
 
+      socket.on("subscribe:game", (data: { gameId: string }) => {
+        socket.join(`game:${data.gameId}`);
+      });
+
       socket.on("bet:place", async (data: BetPlaceEvent) => {
         console.log(`[Crash WS] bet:place received from ${socket.id}:`, data);
       });
@@ -45,22 +48,21 @@ class CrashWebSocketHandler {
     });
   }
 
-  emitGameStart(gameId: string, serverSeedHash: string): void {
+  emitGameTick(gameId: string, multiplier: number, elapsed: number): void {
     if (!this.io) return;
-    const event: GameStartEvent = { gameId, serverSeedHash };
-    this.io.of("/crash").emit("game:start", event);
+    const event: GameTickEvent = { gameId, multiplier, elapsed };
+    this.io.of("/crash").to(`game:${gameId}`).emit("game:tick", event);
   }
 
-  emitGameTick(multiplier: number, elapsed: number): void {
+  emitGameCrash(
+    gameId: string,
+    crashPoint: number,
+    serverSeed: string,
+    reveal: string
+  ): void {
     if (!this.io) return;
-    const event: GameTickEvent = { multiplier, elapsed };
-    this.io.of("/crash").emit("game:tick", event);
-  }
-
-  emitGameCrash(crashPoint: number, serverSeed: string, reveal: string): void {
-    if (!this.io) return;
-    const event: GameCrashEvent = { crashPoint, serverSeed, reveal };
-    this.io.of("/crash").emit("game:crash", event);
+    const event: GameCrashEvent = { gameId, crashPoint, serverSeed, reveal };
+    this.io.of("/crash").to(`game:${gameId}`).emit("game:crash", event);
   }
 }
 
