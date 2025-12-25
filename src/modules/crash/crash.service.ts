@@ -37,23 +37,26 @@ class CrashService {
       );
     }
 
-    // Find current game in waiting state
-    // Note: Games are created by CrashManager, which also manages timers
-    const currentGame = await CrashGame.findOne({
-      status: "waiting",
+    let currentGame = await CrashGame.findOne({
+      status: { $in: ["waiting", "running"] },
     }).sort({ createdAt: -1 });
 
     if (!currentGame) {
-      // No waiting game found - CrashManager should create games
-      throw HttpError(503, "No game available. Please try again in a moment.");
+      await crashManager.createAndStartGame();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      currentGame = await CrashGame.findOne({
+        status: { $in: ["waiting", "running"] },
+      }).sort({ createdAt: -1 });
+
+      if (!currentGame) {
+        throw HttpError(503, "Failed to create game. Please try again.");
+      }
     }
 
-    // Explicitly check that game is in waiting state
     if (currentGame.status !== "waiting") {
       throw HttpError(400, "Bets can only be placed during the waiting phase");
     }
 
-    // Check if user already has an active bet in this game
     const existingBet = await CrashBet.findOne({
       gameId: currentGame._id,
       userId: user._id,
@@ -71,7 +74,6 @@ class CrashService {
       const oldBalance = user.balance;
       const oldTotalWagered = user.totalWagered || 0;
 
-      // Deduct bet amount from user balance
       const updatedUser = await mongoose.model("User").findOneAndUpdate(
         {
           _id: user._id,
@@ -95,7 +97,6 @@ class CrashService {
         throw HttpError(400, "Insufficient balance");
       }
 
-      // Create bet
       const bet = await CrashBet.create(
         [
           {
@@ -111,7 +112,10 @@ class CrashService {
 
       await session.commitTransaction();
 
-      // Log audit
+      if (currentGame.status === "waiting") {
+        await crashManager.startCurrentGame();
+      }
+
       auditService
         .log({
           userId: user._id,
@@ -135,9 +139,7 @@ class CrashService {
           ipAddress,
           userAgent,
         })
-        .catch((err) => {
-          console.error("Audit log failed:", err);
-        });
+        .catch(() => undefined);
 
       return {
         betId: bet[0]._id.toString(),
@@ -162,7 +164,6 @@ class CrashService {
     session.startTransaction();
 
     try {
-      // Find active bet
       const bet = await CrashBet.findOne({
         _id: betId,
         userId: user._id,
@@ -173,31 +174,37 @@ class CrashService {
         throw HttpError(404, "Active bet not found");
       }
 
-      // Find game
       const game = await CrashGame.findById(bet.gameId).session(session);
 
       if (!game) {
         throw HttpError(404, "Game not found");
       }
 
-      if (game.status !== "running") {
-        throw HttpError(400, "Game is not in running state");
-      }
+      let currentMultiplier: number;
 
-      // Get current multiplier from game state (this should come from WebSocket/state management)
-      // For now, we'll calculate it based on elapsed time
-      // In a real implementation, this should come from the running game state
-      const currentMultiplier = await this.getCurrentMultiplier(game);
+      if (game.status === "running") {
+        let multiplier = await this.getCurrentMultiplier(game);
 
-      if (!currentMultiplier || currentMultiplier < 1.0) {
-        throw HttpError(400, "Invalid multiplier");
+        if (!multiplier && game.startedAt) {
+          const elapsed = Math.max(0, Date.now() - game.startedAt.getTime());
+          multiplier = Math.pow(1.0024, elapsed / 100);
+          multiplier = Math.max(1.0, Math.floor(multiplier * 100) / 100);
+        }
+
+        if (!multiplier || multiplier < 1.0) {
+          throw HttpError(400, "Invalid multiplier");
+        }
+        currentMultiplier = multiplier;
+      } else if (game.status === "waiting") {
+        currentMultiplier = 1.0;
+      } else {
+        throw HttpError(400, "Game is not active");
       }
 
       const winAmount = Math.round(bet.amount * currentMultiplier * 100) / 100;
       const oldBalance = user.balance;
       const oldTotalWon = user.totalWon || 0;
 
-      // Update bet
       const updatedBet = await CrashBet.findByIdAndUpdate(
         bet._id,
         {
@@ -217,7 +224,6 @@ class CrashService {
         throw HttpError(500, "Failed to update bet");
       }
 
-      // Add win amount to user balance
       const updatedUser = await mongoose.model("User").findOneAndUpdate(
         {
           _id: user._id,
@@ -241,7 +247,8 @@ class CrashService {
 
       await session.commitTransaction();
 
-      // Log audit
+      await crashManager.stopCurrentGame();
+
       auditService
         .log({
           userId: user._id,
@@ -263,9 +270,7 @@ class CrashService {
           ipAddress,
           userAgent,
         })
-        .catch((err) => {
-          console.error("Audit log failed:", err);
-        });
+        .catch(() => undefined);
 
       return {
         multiplier: currentMultiplier,
@@ -293,7 +298,6 @@ class CrashService {
     }
 
     const elapsed = Math.max(0, Date.now() - game.startedAt.getTime());
-    // Use the same formula as in CrashManager for consistency if not currently active in memory
     const multiplier = Math.pow(1.0024, elapsed / 100);
     return Math.max(1.0, Math.floor(multiplier * 100) / 100);
   }
@@ -325,22 +329,27 @@ class CrashService {
   async getCurrentCrash(
     user?: HydratedDocument<IUser>
   ): Promise<GetCurrentCrashResponse> {
-    // Find current game (waiting or running)
-    const currentGame = await CrashGame.findOne({
+    let currentGame = await CrashGame.findOne({
       status: { $in: ["waiting", "running"] },
     }).sort({ createdAt: -1 });
 
     if (!currentGame) {
-      throw HttpError(404, "No active game found");
+      await crashManager.createAndStartGame();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      currentGame = await CrashGame.findOne({
+        status: { $in: ["waiting", "running"] },
+      }).sort({ createdAt: -1 });
+
+      if (!currentGame) {
+        throw HttpError(503, "Failed to create game. Please try again.");
+      }
     }
 
-    // Get current multiplier if game is running
     let multiplier: number | undefined;
     if (currentGame.status === "running" && currentGame.startedAt) {
       multiplier = (await this.getCurrentMultiplier(currentGame)) || undefined;
     }
 
-    // Find user's bet if user is provided
     let myBet: { betId: string; amount: number } | undefined;
     if (user) {
       const userBet = await CrashBet.findOne({

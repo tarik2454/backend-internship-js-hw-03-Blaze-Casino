@@ -8,11 +8,9 @@ export function generateCrashPoint(
   const combined = `${serverSeed}:${clientSeed}:${nonce}`;
   const hash = crypto.createHmac("sha256", combined).digest("hex");
 
-  // Конвертация в число (первые 13 символов hex)
   const h = parseInt(hash.slice(0, 13), 16);
   const e = Math.pow(2, 52);
 
-  // House edge 4%
   let crashPoint = (100 * e - h) / (e - h) / 100;
   crashPoint = Math.max(1.0, crashPoint);
 
@@ -26,4 +24,3 @@ export function hashServerSeed(serverSeed: string): string {
 export function generateServerSeed(): string {
   return crypto.randomBytes(32).toString("hex");
 }
-

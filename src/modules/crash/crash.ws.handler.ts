@@ -29,48 +29,34 @@ class CrashWebSocketHandler {
     const crashNamespace = this.io.of("/crash");
 
     crashNamespace.on("connection", (socket) => {
-      console.log("Client connected to crash namespace:", socket.id);
+      console.log(`[Crash WS] Client connected: ${socket.id}`);
 
-      // Client → Server: bet:place
       socket.on("bet:place", async (data: BetPlaceEvent) => {
-        try {
-          // This allows multiple tabs to sync their bet state
-          console.log("bet:place received via socket", data);
-        } catch (error) {
-          console.error("Socket bet:place error:", error);
-        }
+        console.log(`[Crash WS] bet:place received from ${socket.id}:`, data);
       });
 
-      // Client → Server: bet:cashout
       socket.on("bet:cashout", async (data: BetCashoutEvent) => {
-        try {
-          console.log("bet:cashout received via socket", data);
-        } catch (error) {
-          console.error("Socket bet:cashout error:", error);
-        }
+        console.log(`[Crash WS] bet:cashout received from ${socket.id}:`, data);
       });
 
       socket.on("disconnect", () => {
-        console.log("Client disconnected from crash namespace:", socket.id);
+        console.log(`[Crash WS] Client disconnected: ${socket.id}`);
       });
     });
   }
 
-  // Server → Client: game:start
   emitGameStart(gameId: string, serverSeedHash: string): void {
     if (!this.io) return;
     const event: GameStartEvent = { gameId, serverSeedHash };
     this.io.of("/crash").emit("game:start", event);
   }
 
-  // Server → Client: game:tick
   emitGameTick(multiplier: number, elapsed: number): void {
     if (!this.io) return;
     const event: GameTickEvent = { multiplier, elapsed };
     this.io.of("/crash").emit("game:tick", event);
   }
 
-  // Server → Client: game:crash
   emitGameCrash(crashPoint: number, serverSeed: string, reveal: string): void {
     if (!this.io) return;
     const event: GameCrashEvent = { crashPoint, serverSeed, reveal };

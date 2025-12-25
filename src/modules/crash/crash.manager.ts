@@ -22,56 +22,36 @@ class CrashManager {
   private startedAt: number | null = null;
   private crashPoint = 0;
   private tickInterval: NodeJS.Timeout | null = null;
-  private waitingTimeout: NodeJS.Timeout | null = null;
-  private isStopped = false; // Flag to stop the game cycle
 
-  private WAITING_TIME = 10000; // 10 seconds
-  private TICK_RATE = 100; // 100ms
+  private TICK_RATE = 100;
 
-  async initialize() {
-    console.log("Initializing Crash Manager...");
+  async createAndStartGame() {
     const activeGame = await CrashGame.findOne({
       status: { $in: [CrashState.WAITING, CrashState.RUNNING] },
     }).sort({ createdAt: -1 });
 
     if (activeGame) {
-      this.currentGameId = activeGame._id.toString();
-      this.crashPoint = activeGame.crashPoint;
-
       if (activeGame.status === CrashState.RUNNING && activeGame.startedAt) {
+        this.currentGameId = activeGame._id.toString();
+        this.crashPoint = activeGame.crashPoint;
         this.currentState = CrashState.RUNNING;
         this.startedAt = activeGame.startedAt.getTime();
         this.resumeGame();
-      } else {
-        // Game is in WAITING state - calculate remaining wait time
-        const gameAge = Date.now() - activeGame.createdAt.getTime();
-        const remainingTime = Math.max(0, this.WAITING_TIME - gameAge);
-
-        if (remainingTime <= 0) {
-          // Game should have started already - start it now
-          this.startGame();
-        } else {
-          // Start timer with remaining time
-          this.startWaitingTimer(remainingTime);
-        }
+        return;
       }
-    } else {
-      await this.createNewGame();
+      if (activeGame.status === CrashState.WAITING) {
+        this.currentGameId = activeGame._id.toString();
+        this.crashPoint = activeGame.crashPoint || 0;
+        this.currentState = CrashState.WAITING;
+        return;
+      }
     }
-  }
 
-  private async createNewGame() {
     const serverSeed = generateServerSeed();
     const serverSeedHash = hashServerSeed(serverSeed);
     const clientSeed = generateServerSeed();
     const nonce = Math.floor(Math.random() * 1000000);
     const crashPoint = generateCrashPoint(serverSeed, clientSeed, nonce);
-
-    // Don't create new game if stopped
-    if (this.isStopped) {
-      console.log("Game cycle is stopped, not creating new game");
-      return;
-    }
 
     const game = await CrashGame.create({
       crashPoint,
@@ -90,13 +70,13 @@ class CrashManager {
     if (this.currentGameId) {
       crashWebSocketHandler.emitGameStart(this.currentGameId, serverSeedHash);
     }
-    this.startWaitingTimer();
   }
 
-  private startWaitingTimer(customTime?: number) {
-    if (this.waitingTimeout) clearTimeout(this.waitingTimeout);
-    const waitTime = customTime ?? this.WAITING_TIME;
-    this.waitingTimeout = setTimeout(() => this.startGame(), waitTime);
+  async startCurrentGame() {
+    if (!this.currentGameId || this.currentState !== CrashState.WAITING) {
+      return;
+    }
+    await this.startGame();
   }
 
   private async startGame() {
@@ -134,7 +114,6 @@ class CrashManager {
       crashWebSocketHandler.emitGameTick(this.currentMultiplier, elapsed);
       await this.checkAutoCashout();
 
-      // Schedule next tick
       this.tickInterval = setTimeout(tickFn, this.TICK_RATE);
     };
 
@@ -142,7 +121,6 @@ class CrashManager {
   }
 
   private calculateMultiplier(elapsedMs: number): number {
-    // Exponential formula: 1.0024 ^ (ms / 100)
     const multiplier = Math.pow(1.0024, elapsedMs / 100);
     return Math.floor(multiplier * 100) / 100;
   }
@@ -158,15 +136,12 @@ class CrashManager {
 
     for (const bet of betsToCashout) {
       try {
-        // We'll use the autoCashout value as the multiplier for fairness
         if (bet.autoCashout === undefined || bet.autoCashout === null) {
           continue;
         }
         const multiplier = bet.autoCashout;
         await this.processCashout(bet, multiplier);
-      } catch (error) {
-        console.error("Auto cashout failed for bet:", bet._id, error);
-      }
+      } catch (error) {}
     }
   }
 
@@ -227,7 +202,6 @@ class CrashManager {
       crashedAt: new Date(),
     });
 
-    // Mark remaining bets as lost
     await CrashBet.updateMany(
       { gameId: this.currentGameId, status: "active" },
       { $set: { status: "lost" } }
@@ -236,13 +210,53 @@ class CrashManager {
     crashWebSocketHandler.emitGameCrash(
       this.crashPoint,
       game.serverSeed,
-      game.serverSeed // Use serverSeed as reveal
+      game.serverSeed
+    );
+  }
+
+  async stopCurrentGame() {
+    if (this.tickInterval) {
+      clearTimeout(this.tickInterval);
+      this.tickInterval = null;
+    }
+
+    if (!this.currentGameId) return;
+
+    const activeBets = await CrashBet.find({
+      gameId: this.currentGameId,
+      status: "active",
+    });
+
+    for (const bet of activeBets) {
+      await mongoose.model("User").findByIdAndUpdate(bet.userId, {
+        $inc: { balance: bet.amount },
+      });
+    }
+
+    await CrashBet.updateMany(
+      { gameId: this.currentGameId, status: "active" },
+      { $set: { status: "lost" } }
     );
 
-    // Only create new game if not stopped
-    if (!this.isStopped) {
-      setTimeout(() => this.createNewGame(), 3000);
+    await CrashGame.findByIdAndUpdate(this.currentGameId, {
+      status: CrashState.CRASHED,
+      crashedAt: new Date(),
+    });
+
+    const game = await CrashGame.findById(this.currentGameId);
+    if (game) {
+      crashWebSocketHandler.emitGameCrash(
+        this.crashPoint || 1.0,
+        game.serverSeed,
+        game.serverSeed
+      );
     }
+
+    this.currentState = CrashState.WAITING;
+    this.currentGameId = null;
+    this.currentMultiplier = 1.0;
+    this.startedAt = null;
+    this.crashPoint = 0;
   }
 
   public getState() {
@@ -252,35 +266,6 @@ class CrashManager {
       gameId: this.currentGameId,
       startedAt: this.startedAt,
     };
-  }
-
-  /**
-   * Stop the game cycle - stops timers and prevents new games from being created
-   */
-  public stop(): void {
-    console.log("Stopping Crash Manager...");
-    this.isStopped = true;
-
-    // Clear waiting timer
-    if (this.waitingTimeout) {
-      clearTimeout(this.waitingTimeout);
-      this.waitingTimeout = null;
-    }
-
-    // Clear tick interval
-    if (this.tickInterval) {
-      clearTimeout(this.tickInterval);
-      this.tickInterval = null;
-    }
-  }
-
-  /**
-   * Start the game cycle - initializes and starts the game
-   */
-  public start(): void {
-    console.log("Starting Crash Manager...");
-    this.isStopped = false;
-    this.initialize();
   }
 }
 

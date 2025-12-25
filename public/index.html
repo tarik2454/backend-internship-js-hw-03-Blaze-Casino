@@ -441,34 +441,6 @@
 
           <!-- Control Panel -->
           <div class="card">
-            <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem">
-              <button
-                id="crash-admin-start"
-                class="btn secondary"
-                style="
-                  padding: 0.5rem 1rem;
-                  font-size: 0.875rem;
-                  background-color: var(--accent-success);
-                  border-color: var(--accent-success);
-                  color: white;
-                "
-              >
-                Start
-              </button>
-              <button
-                id="crash-admin-stop"
-                class="btn secondary"
-                style="
-                  padding: 0.5rem 1rem;
-                  font-size: 0.875rem;
-                  background-color: var(--accent-error, #ef4444);
-                  border-color: var(--accent-error, #ef4444);
-                  color: white;
-                "
-              >
-                Stop
-              </button>
-            </div>
             <h2 style="margin-bottom: 1rem">Crash Configuration</h2>
 
             <div style="margin-bottom: 1rem">
@@ -699,46 +671,46 @@
             >
               Claim Bonus
             </button>
-          </div>
         </div>
       </div>
+    </div>
 
-      <!-- Leaderboard View -->
-      <div id="leaderboard-view" class="hidden">
+    <!-- Leaderboard View -->
+    <div id="leaderboard-view" class="hidden">
         <div class="card">
-          <h2 style="margin-bottom: 1.5rem; text-align: center;">Leaderboard</h2>
-          
-          <div style="margin-bottom: 1.5rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-            <button id="leaderboard-period-daily" class="secondary" data-period="daily">Daily</button>
-            <button id="leaderboard-period-weekly" class="secondary" data-period="weekly">Weekly</button>
-            <button id="leaderboard-period-monthly" class="secondary" data-period="monthly">Monthly</button>
-            <button id="leaderboard-period-all" class="secondary active" data-period="all">All Time</button>
-          </div>
+        <h2 style="margin-bottom: 1.5rem; text-align: center;">Leaderboard</h2>
+        
+        <div style="margin-bottom: 1.5rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+          <button id="leaderboard-period-daily" class="secondary" data-period="daily">Daily</button>
+          <button id="leaderboard-period-weekly" class="secondary" data-period="weekly">Weekly</button>
+          <button id="leaderboard-period-monthly" class="secondary" data-period="monthly">Monthly</button>
+          <button id="leaderboard-period-all" class="secondary active" data-period="all">All Time</button>
+        </div>
 
-          <div id="leaderboard-current-user" style="margin-bottom: 1.5rem;"></div>
+        <div id="leaderboard-current-user" style="margin-bottom: 1.5rem;"></div>
 
-          <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse;">
-              <thead>
-                <tr style="border-bottom: 2px solid rgba(102, 126, 234, 0.3);">
-                  <th style="padding: 0.75rem; text-align: left;">Rank</th>
-                  <th style="padding: 0.75rem; text-align: left;">Username</th>
-                  <th style="padding: 0.75rem; text-align: right;">Total Wagered</th>
-                  <th style="padding: 0.75rem; text-align: right;">Games Played</th>
-                  <th style="padding: 0.75rem; text-align: right;">Win Rate</th>
-                </tr>
-              </thead>
-              <tbody id="leaderboard-table-body">
-                <tr>
-                  <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-dim);">
-                    Loading...
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="border-bottom: 2px solid rgba(102, 126, 234, 0.3);">
+                <th style="padding: 0.75rem; text-align: left;">Rank</th>
+                <th style="padding: 0.75rem; text-align: left;">Username</th>
+                <th style="padding: 0.75rem; text-align: right;">Total Wagered</th>
+                <th style="padding: 0.75rem; text-align: right;">Games Played</th>
+                <th style="padding: 0.75rem; text-align: right;">Win Rate</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboard-table-body">
+              <tr>
+                <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-dim);">
+                  Loading...
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
+    </div>
 
       <!-- Audit Logs View -->
       <div id="audit-view" class="hidden">

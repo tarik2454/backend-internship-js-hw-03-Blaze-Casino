@@ -25,7 +25,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (!crashTabBtn || !crashView) return;
 
-  // Disconnect when hidden
+  // Connect when shown, disconnect when hidden
+  document.addEventListener("crash:shown", () => {
+    // Set initial state to allow betting
+    gameState = "waiting";
+    currentBetId = null;
+    currentBetAmount = 0;
+    currentGameId = null;
+    currentMultiplier = 1.0;
+    updateUI();
+    
+    connectWebSocket();
+    loadCurrentGame();
+    loadHistory();
+  });
+
   document.addEventListener("crash:hidden", () => {
     disconnectWebSocket();
   });
@@ -37,22 +51,27 @@ document.addEventListener("DOMContentLoaded", () => {
     socket = io(`${wsUrl}/crash`);
 
     socket.on("connect", () => {
-      console.log("Connected to crash namespace");
+      console.log("[Crash WS] Client connected:", socket.id);
     });
 
     socket.on("disconnect", () => {
-      console.log("Disconnected from crash namespace");
+      console.log("[Crash WS] Client disconnected");
     });
 
     socket.on("game:start", (data) => {
+      console.log("[Crash WS] Received game:start", data);
       handleGameStart(data);
     });
 
     socket.on("game:tick", (data) => {
+      if (data.elapsed % 1000 < 100) {
+        console.log(`[Crash WS] Received game:tick - multiplier: ${data.multiplier.toFixed(2)}x, elapsed: ${data.elapsed}ms`);
+      }
       handleGameTick(data);
     });
 
     socket.on("game:crash", (data) => {
+      console.log(`[Crash WS] Received game:crash - crashPoint: ${data.crashPoint.toFixed(2)}x`);
       handleGameCrash(data);
     });
   }
@@ -71,7 +90,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     // Only reset bet state if this is a different game
     if (currentGameId && currentGameId !== data.gameId) {
-      console.log("New game started, resetting bet state");
       currentBetId = null;
       currentBetAmount = 0;
       hasCashedOut = false; // Reset cashout flag for new game
@@ -79,10 +97,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     
     currentGameId = data.gameId;
-    gameState = "waiting";
-    currentMultiplier = 1.0;
+    // Don't reset gameState if we have an active bet (game might be starting)
+    if (!currentBetId) {
+      gameState = "waiting";
+      currentMultiplier = 1.0;
       hasCashedOut = false; // Reset cashout flag when new game starts
       cashedOutMultiplier = 0; // Reset cashed out multiplier
+    }
 
     // Hide win info when new game starts
     const winInfoEl = document.getElementById("crash-win-info");
@@ -90,7 +111,6 @@ document.addEventListener("DOMContentLoaded", () => {
       winInfoEl.classList.add("hidden");
     }
 
-    console.log("Game start event - gameId:", data.gameId, "currentBetId:", currentBetId);
     updateUI();
   }
 
@@ -98,10 +118,16 @@ document.addEventListener("DOMContentLoaded", () => {
     // Always update the main multiplier display
     if (gameState !== "running") {
       gameState = "running";
-      console.log("Game started! State changed to 'running'. currentBetId:", currentBetId);
     }
     currentMultiplier = data.multiplier;
+    // Preserve currentBetId - don't let it get lost during game
+    const preservedBetId = currentBetId;
     updateUI();
+    // Restore if it was lost somehow
+    if (!currentBetId && preservedBetId) {
+      currentBetId = preservedBetId;
+      updateUI();
+    }
   }
 
   function handleGameCrash(data) {
@@ -164,34 +190,13 @@ document.addEventListener("DOMContentLoaded", () => {
     if (betBtn) {
       const shouldDisable = gameState !== "waiting" || !!currentBetId;
       betBtn.disabled = shouldDisable;
-      console.log(
-        "Bet button state - disabled:",
-        shouldDisable,
-        "gameState:",
-        gameState,
-        "currentBetId:",
-        currentBetId
-      );
     }
 
     if (cashoutBtn) {
-      const isDisabled = !currentBetId || gameState !== "running";
-      cashoutBtn.disabled = isDisabled;
-      
-      // Log state for debugging
-      if (currentBetId && gameState !== "running" && gameState !== "crashed") {
-        // This is normal during waiting phase - bet is placed but game hasn't started yet
-        // Cashout button will be enabled when game state changes to "running" via game:tick event
-      }
-      
-      console.log(
-        "Cashout button state - disabled:",
-        isDisabled,
-        "currentBetId:",
-        currentBetId,
-        "gameState:",
-        gameState
-      );
+      // Enable cashout button if user has an active bet, regardless of game state
+      // Use explicit check to ensure button is enabled when bet exists
+      const hasActiveBet = currentBetId !== null && currentBetId !== undefined;
+      cashoutBtn.disabled = !hasActiveBet;
     }
 
     // Update info panel
@@ -228,7 +233,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!response.ok) {
         // If no active game, reset state to allow betting when game is created
         if (response.status === 404) {
-          console.log("No active game found, resetting state");
           currentGameId = null;
           gameState = "waiting";
           currentMultiplier = 1.0;
@@ -243,52 +247,36 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await response.json();
       currentGameId = data.gameId;
       gameState = data.state;
-      console.log("Loaded game state:", gameState, "GameId:", currentGameId, "myBet:", data.myBet);
+
+      // If game is crashed, reset state to allow new game
+      if (gameState === "crashed") {
+        currentBetId = null;
+        currentBetAmount = 0;
+        gameState = "waiting";
+        currentGameId = null;
+        currentMultiplier = 1.0;
+        updateUI();
+        return;
+      }
 
       if (data.multiplier) {
         currentMultiplier = data.multiplier;
       } else {
         currentMultiplier = 1.0;
       }
-
-      // Store current betId before updating to preserve it if needed
-      const previousBetId = currentBetId;
-      const previousBetAmount = currentBetAmount;
-      const previousGameId = currentGameId;
       
       // Check if current user has an active bet
       if (data.myBet) {
         currentBetId = data.myBet.betId;
         currentBetAmount = data.myBet.amount;
-        console.log(
-          "Found active bet from myBet:",
-          currentBetId,
-          "Amount:",
-          currentBetAmount
-        );
       } else {
-        // Only reset if gameId doesn't match (different game)
-        // Keep previous betId if it's for the same game
-        if (data.gameId === previousGameId && previousBetId) {
-          console.log("No myBet in response but keeping previous betId for same game:", previousBetId);
-          currentBetId = previousBetId;
-          currentBetAmount = previousBetAmount;
-        } else {
-          currentBetId = null;
-          currentBetAmount = 0;
-          console.log("No active bet found for user");
-        }
+        // No active bet - reset bet state
+        currentBetId = null;
+        currentBetAmount = 0;
       }
 
-      console.log(
-        "Before updateUI - gameState:",
-        gameState,
-        "currentBetId:",
-        currentBetId
-      );
       updateUI();
     } catch (error) {
-      console.error("Failed to load current game:", error);
       // On error, reset state to allow betting
       gameState = "waiting";
       currentBetId = null;
@@ -318,7 +306,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await response.json();
       renderHistory(data.bets);
     } catch (error) {
-      console.error("Failed to load history:", error);
+      // Failed to load history
     }
   }
 
@@ -365,17 +353,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (betBtn) {
     betBtn.addEventListener("click", async () => {
-      console.log("Place bet button clicked");
       const amount = parseFloat(amountInput?.value || 0);
       let autoCashout = undefined;
       if (autoCashoutInput?.value && autoCashoutInput.value.trim() !== "") {
         autoCashout = parseFloat(autoCashoutInput.value);
       }
 
-      console.log("Amount:", amount, "AutoCashout:", autoCashout);
-
       if (isNaN(amount) || amount < 0.1) {
-        console.error("Invalid Bet: Bet amount must be at least $0.10");
         return;
       }
 
@@ -383,30 +367,29 @@ document.addEventListener("DOMContentLoaded", () => {
         autoCashout !== undefined &&
         (isNaN(autoCashout) || autoCashout < 1.0)
       ) {
-        console.error("Invalid Auto Cashout: Auto cashout multiplier must be at least 1.00");
         return;
       }
 
       betBtn.disabled = true;
 
       try {
-            const token = localStorage.getItem("token");
-            if (!token) {
-              console.error("Authentication Required: Please login first");
-              betBtn.disabled = false;
-              return;
-            }
+        const token = localStorage.getItem("token");
+        if (!token) {
+          betBtn.disabled = false;
+          return;
+        }
+
+        // Connect WebSocket first if not connected
+        if (!socket || !socket.connected) {
+          connectWebSocket();
+          // Wait a bit for connection to establish
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
 
         const requestBody = { amount };
         if (autoCashout !== undefined) {
           requestBody.autoCashout = autoCashout;
         }
-        console.log(
-          "Sending bet request to:",
-          `${API_URL}/crash/bet`,
-          "Body:",
-          requestBody
-        );
         const response = await fetch(`${API_URL}/crash/bet`, {
           method: "POST",
           headers: {
@@ -415,8 +398,6 @@ document.addEventListener("DOMContentLoaded", () => {
           },
           body: JSON.stringify(requestBody),
         });
-
-        console.log("Response status:", response.status);
 
         if (!response.ok) {
           let errorMessage = "Failed to place bet";
@@ -436,12 +417,9 @@ document.addEventListener("DOMContentLoaded", () => {
             }
           }
 
-          console.error("Bet error:", errorMessage);
-
           // If user already has a bet, reload current game to update state
           if (errorMessage.includes("already have an active bet")) {
             await loadCurrentGame(); // This will call updateUI() which will disable the button
-            console.error("Bet Already Placed: You already have an active bet in this game");
             return;
           }
 
@@ -449,7 +427,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const data = await response.json();
-        console.log("Bet successful:", data);
 
         // Update state immediately
         const newBetId = data.betId;
@@ -460,8 +437,8 @@ document.addEventListener("DOMContentLoaded", () => {
         currentBetAmount = newBetAmount;
         currentGameId = newGameId;
 
-        // Emit WebSocket event
         if (socket && socket.connected) {
+          console.log("[Crash WS] Emitting bet:place", { amount, autoCashout });
           socket.emit("bet:place", { amount, autoCashout });
         }
 
@@ -481,44 +458,20 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!currentBetId && newBetId && currentGameId === newGameId) {
           currentBetId = newBetId;
           currentBetAmount = newBetAmount;
-          console.log("Restored bet state after loadCurrentGame:", currentBetId);
         }
         
         // Update UI with the correct state
         updateUI();
       } catch (error) {
-          console.error("Bet error:", error);
           betBtn.disabled = false;
       }
     });
-  } else {
-    console.error("Bet button not found!");
   }
 
   if (cashoutBtn) {
     cashoutBtn.addEventListener("click", async () => {
-      console.log("Cashout button clicked. currentBetId:", currentBetId, "gameState:", gameState);
-      
       if (!currentBetId) {
-        console.error("No Active Bet: You don't have an active bet to cashout");
         return;
-      }
-
-      // If gameState is not "running", try to sync state first
-      if (gameState !== "running") {
-        console.log("Game state is not 'running', syncing state...");
-        try {
-          await loadCurrentGame();
-          // Check again after sync
-          if (gameState !== "running") {
-            const errorMsg = `Cannot cashout. Game state is: ${gameState}. Game must be running.`;
-            console.error(errorMsg);
-            return;
-          }
-        } catch (error) {
-          console.error("Failed to sync game state:", error);
-          return;
-        }
       }
 
       cashoutBtn.disabled = true;
@@ -526,7 +479,6 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         const token = localStorage.getItem("token");
         if (!token) {
-          console.error("Authentication Required: Please login first");
           cashoutBtn.disabled = false;
           return;
         }
@@ -556,14 +508,13 @@ document.addEventListener("DOMContentLoaded", () => {
               errorMessage = `HTTP ${response.status}: ${text}`;
             }
           }
-          console.error("Cashout error:", errorMessage, "Response status:", response.status);
           throw new Error(errorMessage);
         }
 
         const data = await response.json();
 
-        // Emit WebSocket event
         if (socket && socket.connected) {
+          console.log("[Crash WS] Emitting bet:cashout", { betId: currentBetId });
           socket.emit("bet:cashout", { betId: currentBetId });
         }
 
@@ -575,11 +526,6 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
 
-        console.log("Cashout successful:", data);
-        
-        // Save multiplier at cashout for display
-        cashedOutMultiplier = data.multiplier;
-        
         // Save multiplier at cashout for display
         cashedOutMultiplier = data.multiplier;
         
@@ -612,97 +558,11 @@ document.addEventListener("DOMContentLoaded", () => {
         // Don't enable cashout button - bet is already cashed out, updateUI() will handle it
         // updateUI() already set cashoutBtn.disabled = true because currentBetId is now null
       } catch (error) {
-        console.error("Cashout error:", error);
-        console.error("Error details:", {
-          message: error.message,
-          stack: error.stack,
-          currentBetId,
-          gameState
-        });
-        
         // On error, restore button state so user can try again
         cashoutBtn.disabled = false;
-        console.error("Cashout Failed:", error.message || "Failed to cashout");
       }
     });
   }
 
-  // Don't auto-connect - user must click Start Game button
-
-  // Admin controls
-  const adminStartBtn = document.getElementById("crash-admin-start");
-  const adminStopBtn = document.getElementById("crash-admin-stop");
-
-  if (adminStartBtn) {
-    adminStartBtn.addEventListener("click", async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          console.error("Authentication Required: Please login first");
-          return;
-        }
-
-        adminStartBtn.disabled = true;
-
-        // Connect WebSocket first if not connected
-        if (!socket || !socket.connected) {
-          connectWebSocket();
-          // Wait a bit for connection to establish
-          await new Promise((resolve) => setTimeout(resolve, 500));
-        }
-
-        // Start the game on backend
-        const response = await fetch(`${API_URL}/crash/admin/start`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: "Failed to start game" }));
-          throw new Error(errorData.message || "Failed to start game");
-        }
-
-        // Load current game state and history
-        loadCurrentGame();
-        loadHistory();
-      } catch (error) {
-        console.error("Failed to start game:", error);
-      } finally {
-        adminStartBtn.disabled = false;
-      }
-    });
-  }
-
-  if (adminStopBtn) {
-    adminStopBtn.addEventListener("click", async () => {
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          console.error("Authentication Required: Please login first");
-          return;
-        }
-
-        adminStopBtn.disabled = true;
-        const response = await fetch(`${API_URL}/crash/admin/stop`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ message: "Failed to stop game" }));
-          throw new Error(errorData.message || "Failed to stop game");
-        }
-      } catch (error) {
-        console.error("Failed to stop game:", error);
-      } finally {
-        adminStopBtn.disabled = false;
-      }
-    });
-  }
+  // Don't auto-connect - game starts when user clicks Place Bet
 });
