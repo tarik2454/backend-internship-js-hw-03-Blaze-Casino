@@ -15,7 +15,7 @@ const bonusSettingSchema = new Schema<IBonusSetting>(
       required: true,
       min: 0,
     },
-    wagerBonusAmount: {
+    wagerBonusRate: {
       type: Number,
       default: 0.001,
       required: true,

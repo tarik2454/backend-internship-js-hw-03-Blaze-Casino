@@ -55,7 +55,7 @@ class BonusService {
     settings: {
       baseAmount: number;
       wagerBonusStep: number;
-      wagerBonusAmount: number;
+      wagerBonusRate: number;
       gamesBonusStep: number;
       gamesBonusAmount: number;
     },
@@ -70,7 +70,7 @@ class BonusService {
     const wagerBonus =
       Math.floor(
         (availableWagered / settings.wagerBonusStep) *
-          settings.wagerBonusAmount *
+          settings.wagerBonusRate *
           100
       ) / 100;
 
