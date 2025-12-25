@@ -28,6 +28,7 @@
     "mongoose": "^7.6.3",
     "morgan": "1.10.0",
     "nanoid": "^3.0.0",
+    "socket.io": "^4.8.3",
     "zod": "^4.2.1"
   },
   "devDependencies": {
@@ -38,6 +39,7 @@
     "@types/morgan": "^1.9.10",
     "@types/nanoid": "^2.1.0",
     "@types/node": "^25.0.3",
+    "@types/socket.io": "^3.0.1",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
     "eslint": "7.19.0",

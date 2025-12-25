@@ -19,7 +19,9 @@ export type EntityType =
   | "PlinkoDrop"
   | "CaseOpening"
   | "BonusClaim"
-  | "LeaderboardStats";
+  | "LeaderboardStats"
+  | "CrashBet"
+  | "CrashGame";
 
 export interface IAuditLog extends Document {
   userId?: Types.ObjectId;

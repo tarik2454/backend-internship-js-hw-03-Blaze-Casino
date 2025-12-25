@@ -12,6 +12,7 @@ import { loginLimiter, registerLimiter } from "./middlewares";
 import { claimBonusRouter } from "./modules/bonus/bonus.router";
 import { leaderboardRouter } from "./modules/leaderboard/leaderboard.router";
 import { auditRouter } from "./modules/audit/audit.router";
+import { crashRouter } from "./modules/crash/crash.router";
 
 const app = express();
 
@@ -40,6 +41,7 @@ app.use("/api/mines", minesRouter);
 app.use("/api/plinko", plinkoRouter);
 app.use("/api/bonus", claimBonusRouter);
 app.use("/api/leaderboard", leaderboardRouter);
+app.use("/api/crash", crashRouter);
 app.use("/api/audit", auditRouter);
 
 app.use((_req: Request, res: Response) => {

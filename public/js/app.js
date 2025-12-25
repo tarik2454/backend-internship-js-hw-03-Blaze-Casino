@@ -38,11 +38,13 @@ const authTitle = document.getElementById("auth-title");
 const tabCases = document.getElementById("tab-cases");
 const tabMines = document.getElementById("tab-mines");
 const tabBonus = document.getElementById("tab-bonus");
+const tabCrash = document.getElementById("tab-crash");
 const tabLeaderboard = document.getElementById("tab-leaderboard");
 const tabAudit = document.getElementById("tab-audit");
 const casesView = document.getElementById("cases-view");
 const minesView = document.getElementById("mines-view");
 const bonusView = document.getElementById("bonus-view");
+const crashView = document.getElementById("crash-view");
 const leaderboardView = document.getElementById("leaderboard-view");
 const auditView = document.getElementById("audit-view");
 
@@ -174,6 +176,13 @@ function switchTab(tab) {
     plinkoView.classList.add("hidden");
   }
 
+  if (tabCrash) {
+    tabCrash.classList.remove("active");
+    tabCrash.classList.add("secondary");
+    crashView.classList.add("hidden");
+    document.dispatchEvent(new CustomEvent("crash:hidden"));
+  }
+
   if (tabBonus) {
     tabBonus.classList.remove("active");
     tabBonus.classList.add("secondary");
@@ -213,6 +222,13 @@ function switchTab(tab) {
       const event = new Event("plinko:shown");
       document.dispatchEvent(event);
     }
+  } else if (tab === "crash") {
+    if (tabCrash) {
+      tabCrash.classList.add("active");
+      tabCrash.classList.remove("secondary");
+      crashView.classList.remove("hidden");
+      document.dispatchEvent(new CustomEvent("crash:shown"));
+    }
   } else if (tab === "bonus") {
     if (tabBonus) {
       tabBonus.classList.add("active");
@@ -241,6 +257,7 @@ function switchTab(tab) {
 tabCases.addEventListener("click", () => switchTab("cases"));
 tabMines.addEventListener("click", () => switchTab("mines"));
 if (tabPlinko) tabPlinko.addEventListener("click", () => switchTab("plinko"));
+if (tabCrash) tabCrash.addEventListener("click", () => switchTab("crash"));
 if (tabBonus) tabBonus.addEventListener("click", () => switchTab("bonus"));
 if (tabLeaderboard) tabLeaderboard.addEventListener("click", () => switchTab("leaderboard"));
 if (tabAudit) tabAudit.addEventListener("click", () => switchTab("audit"));
@@ -592,11 +609,11 @@ function renderUser() {
       )}</h2>
       <p style="color: var(--text-dim);">${escapeHtml(currentUser.email)}</p>
     </div>
-    <div style="text-align: right;">
-      <div style="font-size: 1.5rem; color: var(--accent-success); font-weight: 700;">$${currentUser.balance.toFixed(
-        2
-      )}</div>
-      <div style="font-size: 0.875rem; color: var(--text-dim);">Balance</div>
+      <div style="text-align: right;">
+        <div style="font-size: 1.5rem; color: var(--accent-success); font-weight: 700;">$${currentUser.balance.toFixed(
+          2
+        )}</div>
+        <div style="font-size: 0.875rem; color: var(--text-dim);">Balance</div>
     </div>
   `;
 }
