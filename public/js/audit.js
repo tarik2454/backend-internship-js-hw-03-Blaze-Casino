@@ -1,4 +1,5 @@
-let currentAuditFilters = {
+/* eslint-env browser */
+const currentAuditFilters = {
   entityType: "",
   limit: 50,
   offset: 0,
@@ -43,20 +44,26 @@ function formatAction(action) {
 
 function formatDetails(log) {
   const details = [];
-  
+
   if (log.oldValue && Object.keys(log.oldValue).length > 0) {
-    details.push(`<strong>Old:</strong> ${JSON.stringify(log.oldValue, null, 2)}`);
+    details.push(
+      `<strong>Old:</strong> ${JSON.stringify(log.oldValue, null, 2)}`
+    );
   }
-  
+
   if (log.newValue && Object.keys(log.newValue).length > 0) {
-    details.push(`<strong>New:</strong> ${JSON.stringify(log.newValue, null, 2)}`);
+    details.push(
+      `<strong>New:</strong> ${JSON.stringify(log.newValue, null, 2)}`
+    );
   }
-  
+
   if (details.length === 0) {
     return "-";
   }
-  
-  return `<details style="cursor: pointer;"><summary style="color: var(--text-dim);">View Details</summary><pre style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.3); border-radius: 0.25rem; font-size: 0.75rem; overflow-x: auto;">${details.join("<br>")}</pre></details>`;
+
+  return `<details style="cursor: pointer;"><summary style="color: var(--text-dim);">View Details</summary><pre style="margin-top: 0.5rem; padding: 0.5rem; background: rgba(0,0,0,0.3); border-radius: 0.25rem; font-size: 0.75rem; overflow-x: auto;">${details.join(
+    "<br>"
+  )}</pre></details>`;
 }
 
 async function loadAuditLogs() {
@@ -135,7 +142,10 @@ async function loadAuditLogs() {
           ${
             log.userId
               ? escapeHtml(
-                  log.userId.username || log.userId.email || log.userId._id || "-"
+                  log.userId.username ||
+                    log.userId.email ||
+                    log.userId._id ||
+                    "-"
                 )
               : "-"
           }
@@ -173,7 +183,10 @@ document.addEventListener("DOMContentLoaded", () => {
     refreshBtn.addEventListener("click", () => {
       currentAuditFilters.entityType = filterType?.value || "";
       currentAuditFilters.limit = parseInt(filterLimit?.value || "50", 10);
-      currentAuditFilters.limit = Math.min(Math.max(currentAuditFilters.limit, 1), 100);
+      currentAuditFilters.limit = Math.min(
+        Math.max(currentAuditFilters.limit, 1),
+        100
+      );
       currentAuditFilters.offset = 0;
       loadAuditLogs();
     });
@@ -190,7 +203,10 @@ document.addEventListener("DOMContentLoaded", () => {
   if (filterLimit) {
     filterLimit.addEventListener("change", () => {
       currentAuditFilters.limit = parseInt(filterLimit.value || "50", 10);
-      currentAuditFilters.limit = Math.min(Math.max(currentAuditFilters.limit, 1), 100);
+      currentAuditFilters.limit = Math.min(
+        Math.max(currentAuditFilters.limit, 1),
+        100
+      );
       currentAuditFilters.offset = 0;
       loadAuditLogs();
     });
@@ -200,4 +216,3 @@ document.addEventListener("DOMContentLoaded", () => {
     loadAuditLogs();
   });
 });
-

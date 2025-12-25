@@ -1,16 +1,14 @@
 /* eslint-env browser */
-
-// API_URL is already declared in app.js
+/* global io */
+const API_URL = window.API_URL || window.location.origin + "/api";
 let socket = null;
 let currentGameId = null;
 let currentBetId = null;
 let currentMultiplier = 1.0;
 let currentBetAmount = 0;
 let gameState = "waiting"; // waiting, running, crashed
-let crashTimeout = null;
 let hasCashedOut = false; // Flag to track if user has cashed out in current game
 let cashedOutMultiplier = 0; // Multiplier at which user cashed out
-
 
 document.addEventListener("DOMContentLoaded", () => {
   const crashTabBtn = document.getElementById("tab-crash");
@@ -34,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
     currentGameId = null;
     currentMultiplier = 1.0;
     updateUI();
-    
+
     connectWebSocket();
     loadCurrentGame();
     loadHistory();
@@ -60,13 +58,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
     socket.on("game:tick", (data) => {
       if (data.elapsed % 1000 < 100) {
-        console.log(`[Crash WS] Received game:tick - multiplier: ${data.multiplier.toFixed(2)}x, elapsed: ${data.elapsed}ms`);
+        console.log(
+          `[Crash WS] Received game:tick - multiplier: ${data.multiplier.toFixed(
+            2
+          )}x, elapsed: ${data.elapsed}ms`
+        );
       }
       handleGameTick(data);
     });
 
     socket.on("game:crash", (data) => {
-      console.log(`[Crash WS] Received game:crash - crashPoint: ${data.crashPoint.toFixed(2)}x`);
+      console.log(
+        `[Crash WS] Received game:crash - crashPoint: ${data.crashPoint.toFixed(
+          2
+        )}x`
+      );
       handleGameCrash(data);
     });
   }
@@ -136,7 +142,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (statusEl) {
       if (hasCashedOut && gameState === "running") {
         // Show cashed out status if user has cashed out but game is still running
-        statusEl.textContent = `Cashed out at ${cashedOutMultiplier > 0 ? cashedOutMultiplier.toFixed(2) : currentMultiplier.toFixed(2)}x`;
+        statusEl.textContent = `Cashed out at ${
+          cashedOutMultiplier > 0
+            ? cashedOutMultiplier.toFixed(2)
+            : currentMultiplier.toFixed(2)
+        }x`;
         statusEl.style.color = "var(--accent-success)";
       } else if (gameState === "waiting") {
         statusEl.textContent = "Waiting for bets...";
@@ -232,7 +242,7 @@ document.addEventListener("DOMContentLoaded", () => {
       } else {
         currentMultiplier = 1.0;
       }
-      
+
       // Check if current user has an active bet
       if (data.myBet) {
         currentBetId = data.myBet.betId;
@@ -295,15 +305,16 @@ document.addEventListener("DOMContentLoaded", () => {
     historyTable.innerHTML = bets
       .map((bet) => {
         const date = new Date(bet.createdAt).toLocaleString();
-        const multiplier = bet.cashoutMultiplier 
+        const multiplier = bet.cashoutMultiplier
           ? bet.cashoutMultiplier.toFixed(2) + "x"
           : bet.crashPoint.toFixed(2) + "x";
-        const winAmount = bet.winAmount 
+        const winAmount = bet.winAmount
           ? `$${bet.winAmount.toFixed(2)}`
           : "$0.00";
-        const statusColor = bet.status === "won" 
-          ? "var(--accent-success)" 
-          : "var(--accent-error, #ef4444)";
+        const statusColor =
+          bet.status === "won"
+            ? "var(--accent-success)"
+            : "var(--accent-error, #ef4444)";
         const statusText = bet.status === "won" ? "Won" : "Lost";
 
         return `
@@ -322,7 +333,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (betBtn) {
     betBtn.addEventListener("click", async () => {
       const amount = parseFloat(amountInput?.value || 0);
-      let autoCashout = undefined;
+      let autoCashout;
       if (autoCashoutInput?.value && autoCashoutInput.value.trim() !== "") {
         autoCashout = parseFloat(autoCashoutInput.value);
       }
@@ -400,7 +411,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const newBetId = data.betId;
         const newBetAmount = amount;
         const newGameId = data.gameId;
-        
+
         currentBetId = newBetId;
         currentBetAmount = newBetAmount;
         currentGameId = newGameId;
@@ -425,17 +436,17 @@ document.addEventListener("DOMContentLoaded", () => {
         // Reload current game to sync gameState (in case game is already running)
         // But preserve the betId we just set
         await loadCurrentGame();
-        
+
         // If loadCurrentGame didn't find our bet (race condition), restore it
         if (!currentBetId && newBetId && currentGameId === newGameId) {
           currentBetId = newBetId;
           currentBetAmount = newBetAmount;
         }
-        
+
         // Update UI with the correct state
         updateUI();
       } catch (error) {
-          betBtn.disabled = false;
+        betBtn.disabled = false;
       }
     });
   }
@@ -486,7 +497,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await response.json();
 
         if (socket && socket.connected) {
-          console.log("[Crash WS] Emitting bet:cashout", { betId: currentBetId });
+          console.log("[Crash WS] Emitting bet:cashout", {
+            betId: currentBetId,
+          });
           socket.emit("bet:cashout", { betId: currentBetId });
         }
 
@@ -500,7 +513,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Save multiplier at cashout for display
         cashedOutMultiplier = data.multiplier;
-        
+
         // Reset bet state first (before updateUI to hide bet info)
         currentBetId = null;
         currentBetAmount = 0;
@@ -510,7 +523,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const winInfoEl = document.getElementById("crash-win-info");
         const winMultiplierEl = document.getElementById("crash-win-multiplier");
         const winAmountEl = document.getElementById("crash-win-amount");
-        
+
         if (winInfoEl) {
           winInfoEl.classList.remove("hidden");
         }
@@ -523,10 +536,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Update UI immediately to hide bet info panel and disable cashout button
         updateUI();
-        
+
         // Load history
         loadHistory();
-        
+
         // Don't enable cashout button - bet is already cashed out, updateUI() will handle it
         // updateUI() already set cashoutBtn.disabled = true because currentBetId is now null
       } catch (error) {

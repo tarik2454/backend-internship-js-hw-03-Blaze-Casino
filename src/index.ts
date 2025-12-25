@@ -1,10 +1,7 @@
 import "dotenv/config";
 import mongoose from "mongoose";
-import { createServer } from "http";
-import { Server as SocketIOServer } from "socket.io";
-import app from "./app";
 import { validateEnv } from "./config/env";
-import crashWebSocketHandler from "./modules/crash/crash.ws.handler";
+import app from "./app";
 
 validateEnv();
 
@@ -13,29 +10,12 @@ mongoose
     writeConcern: { w: "majority" },
   })
   .then(() => {
-    console.log("Database connection successful");
+    app.listen(process.env.PORT, () => {
+      console.log("Database connection successful");
+      console.log(`Server running on port: ${process.env.PORT}`);
+    });
   })
   .catch((error: Error) => {
-    console.warn("Database connection error:", error.message);
+    console.warn(error.message);
+    process.exit(1);
   });
-
-if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
-  const PORT = process.env.PORT || 3000;
-
-  const httpServer = createServer(app);
-  const io = new SocketIOServer(httpServer, {
-    cors: {
-      origin: true,
-      credentials: true,
-    },
-  });
-
-  crashWebSocketHandler.initialize(io);
-
-  httpServer.listen(PORT, () => {
-    console.log(`Server running on port: ${PORT}`);
-    console.log(`WebSocket server ready on /crash namespace`);
-  });
-}
-
-export default app;

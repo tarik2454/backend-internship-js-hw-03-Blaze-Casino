@@ -1,4 +1,5 @@
 /* eslint-env browser */
+/* global showToast */
 const getApiUrl = () => {
   if (typeof window !== "undefined" && window.API_URL) {
     return window.API_URL;
@@ -47,25 +48,36 @@ async function loadBonusStatus(shouldLog = false) {
     if (shouldLog) {
       console.log("BonusStatusResponse:", bonusStatus);
     }
-  } catch (err) {
-  }
+  } catch (err) {}
 }
 
 function updateBonusStatusDisplay() {
-  const { bonusAmountEl, bonusBaseAmountEl, bonusWagerBonusEl, bonusGamesBonusEl, bonusNextClaimAtEl } = getBonusElements();
+  const {
+    bonusAmountEl,
+    bonusBaseAmountEl,
+    bonusWagerBonusEl,
+    bonusGamesBonusEl,
+    bonusNextClaimAtEl,
+  } = getBonusElements();
   if (!bonusStatus) return;
 
   if (bonusAmountEl) {
     bonusAmountEl.textContent = `$${bonusStatus.amount?.toFixed(2) || "0.00"}`;
   }
   if (bonusBaseAmountEl) {
-    bonusBaseAmountEl.textContent = `$${bonusStatus.baseAmount?.toFixed(2) || "0.00"}`;
+    bonusBaseAmountEl.textContent = `$${
+      bonusStatus.baseAmount?.toFixed(2) || "0.00"
+    }`;
   }
   if (bonusWagerBonusEl) {
-    bonusWagerBonusEl.textContent = `$${bonusStatus.wagerBonus?.toFixed(2) || "0.00"}`;
+    bonusWagerBonusEl.textContent = `$${
+      bonusStatus.wagerBonus?.toFixed(2) || "0.00"
+    }`;
   }
   if (bonusGamesBonusEl) {
-    bonusGamesBonusEl.textContent = `$${bonusStatus.gamesBonus?.toFixed(2) || "0.00"}`;
+    bonusGamesBonusEl.textContent = `$${
+      bonusStatus.gamesBonus?.toFixed(2) || "0.00"
+    }`;
   }
   if (bonusNextClaimAtEl && bonusStatus.nextClaimAt) {
     const nextClaimDate = new Date(bonusStatus.nextClaimAt);
@@ -98,10 +110,12 @@ function updateTimer() {
     const diffSeconds = Math.ceil(diffMs / 1000);
     const minutes = Math.floor(diffSeconds / 60);
     const seconds = diffSeconds % 60;
-    
-    bonusTimerEl.textContent = `Next bonus in: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+    bonusTimerEl.textContent = `Next bonus in: ${minutes}:${seconds
+      .toString()
+      .padStart(2, "0")}`;
     bonusTimerEl.style.color = "var(--text-dim)";
-    
+
     if (bonusClaimBtn) {
       bonusClaimBtn.disabled = true;
     }
@@ -117,7 +131,7 @@ function startCountdown(seconds) {
   updateCountdownDisplay();
 }
 
-const claimBonus = async function() {
+const claimBonus = async function () {
   try {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -131,7 +145,7 @@ const claimBonus = async function() {
     if (!bonusClaimBtn) {
       return;
     }
-    
+
     if (bonusClaimBtn.disabled) {
       return;
     }
@@ -204,7 +218,7 @@ function startBonusStatusUpdates() {
 
   loadBonusStatus(true);
   lastStatusUpdate = Date.now();
-  
+
   bonusStatusInterval = setInterval(() => {
     const { bonusView } = getBonusElements();
     if (bonusView && !bonusView.classList.contains("hidden")) {
@@ -242,10 +256,14 @@ function updateCountdownDisplay() {
 
   const minutes = Math.floor(remaining / 60);
   const secs = remaining % 60;
-  bonusTimerEl.textContent = `Next bonus in: ${minutes}:${secs.toString().padStart(2, '0')}`;
+  bonusTimerEl.textContent = `Next bonus in: ${minutes}:${secs
+    .toString()
+    .padStart(2, "0")}`;
   bonusTimerEl.style.color = "var(--text-dim)";
   bonusClaimBtn.disabled = true;
-  bonusClaimBtn.textContent = `Claim Bonus (${minutes}:${secs.toString().padStart(2, '0')})`;
+  bonusClaimBtn.textContent = `Claim Bonus (${minutes}:${secs
+    .toString()
+    .padStart(2, "0")})`;
 }
 
 function stopBonusStatusUpdates() {
