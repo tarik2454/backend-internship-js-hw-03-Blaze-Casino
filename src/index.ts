@@ -3,8 +3,6 @@ import mongoose from "mongoose";
 import app from "./app";
 import { validateEnv } from "./config/env";
 
-const PORT = process.env.PORT || 3000;
-
 validateEnv();
 
 mongoose
@@ -12,13 +10,17 @@ mongoose
     writeConcern: { w: "majority" },
   })
   .then(() => {
-    app.listen(PORT, () => {
-      console.log(
-        `Database connection successful. Server running on port: ${PORT}`
-      );
-    });
+    console.log("Database connection successful");
   })
   .catch((error: Error) => {
-    console.warn(error.message);
-    process.exit(1);
+    console.warn("Database connection error:", error.message);
   });
+
+if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`Server running on port: ${PORT}`);
+  });
+}
+
+export default app;

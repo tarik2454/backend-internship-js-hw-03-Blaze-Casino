@@ -30,11 +30,19 @@ npm install
 Создайте файл `.env` в корне проекта:
 
 ```env
-PORT=3000
+# Обязательные переменные
 DB_HOST=mongodb://localhost:27017/your_database_name
-JWT_SECRET=your_secret_key
+JWT_SECRET=your_secret_key_here_min_32_characters_long
+
+# Опциональные переменные (имеют значения по умолчанию)
+PORT=3000
 NODE_ENV=development
 ```
+
+**Важно:**
+- `DB_HOST` - замените `your_database_name` на имя вашей базы данных
+- `JWT_SECRET` - замените на длинную случайную строку (минимум 32 символа)
+- `PORT` и `NODE_ENV` опциональны и имеют значения по умолчанию
 
 ### Запуск проекта
 
