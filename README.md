@@ -655,6 +655,186 @@ Content-Type: application/json
 
 ---
 
+### Crash
+
+Базовый путь: `/crash`
+
+Модуль для игры Crash. Все эндпоинты требуют авторизации.
+
+#### Сделать ставку
+
+**POST** `/crash/bet`
+
+Создает новую ставку и запускает игру Crash. Каждый пользователь играет в свою независимую игру.
+
+**Тело запроса:**
+
+```json
+{
+  "amount": 10,
+  "autoCashout": 2.5
+}
+```
+
+- `amount`: Сумма ставки (0.10 - 10000) - обязательное
+- `autoCashout`: Автоматический кешаут на множителе (1.0 - 1000) - опциональное
+
+**Успешный ответ (201):**
+
+```json
+{
+  "betId": "65b...",
+  "amount": 10,
+  "gameId": "65c..."
+}
+```
+
+**Ошибки:**
+
+- `400` - Недостаточно баланса или неверные параметры
+- `401` - Не авторизован
+
+---
+
+#### Забрать выигрыш (Cashout)
+
+**POST** `/crash/cashout`
+
+Завершает игру и зачисляет выигрыш на баланс.
+
+**Тело запроса:**
+
+```json
+{
+  "betId": "65b..."
+}
+```
+
+- `betId`: ID ставки - обязательное
+
+**Успешный ответ (200):**
+
+```json
+{
+  "multiplier": 2.45,
+  "winAmount": 24.5
+}
+```
+
+**Ошибки:**
+
+- `400` - Неверные параметры или игра не активна
+- `401` - Не авторизован
+- `404` - Ставка не найдена
+
+---
+
+#### Получить текущую игру
+
+**GET** `/crash/current`
+
+Возвращает текущую активную игру пользователя, создает новую игру в состоянии WAITING, если активной нет.
+
+**Успешный ответ (200):**
+
+```json
+{
+  "gameId": "65c...",
+  "state": "running",
+  "multiplier": 1.45,
+  "serverSeedHash": "hash...",
+  "myBet": {
+    "betId": "65b...",
+    "amount": 10
+  }
+}
+```
+
+**Поля ответа:**
+
+- `gameId` - ID игры
+- `state` - Состояние игры: "waiting", "running", "crashed"
+- `multiplier` - Текущий множитель (только для состояния "running")
+- `serverSeedHash` - Хеш server seed для Provably Fair
+- `myBet` - Информация о текущей ставке пользователя (если есть)
+
+**Ошибки:**
+
+- `401` - Не авторизован
+
+---
+
+#### История игр (Provably Fair)
+
+**GET** `/crash/history?limit=10&offset=0`
+
+Возвращает историю завершенных игр для проверки Provably Fair.
+
+**Query параметры:**
+
+- `limit`: Максимальное количество записей (default: 10, max: 10)
+- `offset`: Смещение (default: 0)
+
+**Успешный ответ (200):**
+
+```json
+{
+  "games": [
+    {
+      "gameId": "65c...",
+      "crashPoint": 2.34,
+      "hash": "server_seed_hash",
+      "seed": "revealed_server_seed"
+    }
+  ]
+}
+```
+
+---
+
+#### История ставок пользователя
+
+**GET** `/crash/bets/history?limit=10&offset=0`
+
+Возвращает историю ставок текущего пользователя.
+
+**Query параметры:**
+
+- `limit`: Максимальное количество записей (default: 10, max: 10)
+- `offset`: Смещение (default: 0)
+
+**Успешный ответ (200):**
+
+```json
+{
+  "bets": [
+    {
+      "betId": "65b...",
+      "gameId": "65c...",
+      "amount": 10,
+      "cashoutMultiplier": 2.45,
+      "winAmount": 24.5,
+      "status": "won",
+      "crashPoint": 3.21,
+      "createdAt": "2024-01-15T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+**Поля ответа:**
+
+- `betId` - ID ставки
+- `gameId` - ID игры
+- `amount` - Сумма ставки
+- `cashoutMultiplier` - Множитель при кешауте (если был кешаут)
+- `winAmount` - Сумма выигрыша (если был кешаут)
+- `status` - Статус ставки: "won", "lost"
+- `crashPoint` - Точка краша игры
+- `createdAt` - Время создания ставки
+
+---
+
 ### Бонусы (Bonus)
 
 Базовый путь: `/bonus`
@@ -850,6 +1030,8 @@ Authorization: Bearer <token>
   - `CaseOpening` - Открытия кейсов
   - `BonusClaim` - Получения бонусов
   - `LeaderboardStats` - Статистика лидерборда
+  - `CrashBet` - Ставки в игре Crash
+  - `Crash` - Игры Crash
 - `limit` - Максимальное количество записей (опционально, по умолчанию: 100, максимум: 100)
 - `offset` - Смещение для пагинации (опционально, по умолчанию: 0)
 
@@ -1092,6 +1274,7 @@ Authorization: Bearer <your_jwt_token>
 - Все эндпоинты `/api/cases/*`
 - Все эндпоинты `/api/mines/*`
 - Все эндпоинты `/api/plinko/*`
+- Все эндпоинты `/api/crash/*`
 - Все эндпоинты `/api/bonus/*`
 - Все эндпоинты `/api/leaderboard/*`
 - Все эндпоинты `/api/audit/*`
@@ -1109,7 +1292,7 @@ API использует систему ограничения частоты з
 
 1. **Bets Limiter** - 10 запросов в секунду
 
-   - Применяется к: `POST /api/plinko/drop`, `POST /api/mines/start`
+   - Применяется к: `POST /api/plinko/drop`, `POST /api/mines/start`, `POST /api/crash/bet`
 
 2. **Case Opening Limiter** - 5 запросов в секунду
 
@@ -1125,6 +1308,7 @@ API использует систему ограничения частоты з
      - `GET /api/cases`, `GET /api/cases/:id`
      - `GET /api/mines/active`, `GET /api/mines/history`, `POST /api/mines/cashout`
      - `GET /api/plinko/multipliers`, `GET /api/plinko/history`, `GET /api/plinko/recent`
+     - `GET /api/crash/current`, `GET /api/crash/history`, `GET /api/crash/bets/history`, `POST /api/crash/cashout`
      - `GET /api/bonus/status`, `POST /api/bonus/claim`
      - `GET /api/leaderboard`
      - `GET /api/audit`
@@ -1273,6 +1457,23 @@ src/
 │           └── plinko-multipliers/
 │               ├── plinko-multipliers.model.ts
 │               └── plinko-multipliers.types.ts
+│   └── crash/        # Модуль игры Crash
+│       ├── crash.controller.ts
+│       ├── crash.router.ts
+│       ├── crash.service.ts
+│       ├── crash.manager.ts
+│       ├── crash.schema.ts
+│       ├── crash.types.ts
+│       ├── crash.utils.ts
+│       ├── crash.ws.handler.ts
+│       ├── crash.ws.types.ts
+│       └── models/
+│           ├── crash/
+│           │   ├── crash.model.ts
+│           │   └── crash.types.ts
+│           └── crash-bets/
+│               ├── crash-bets.model.ts
+│               └── crash-bets.types.ts
 │   └── bonus/        # Модуль бонусов
 │       ├── bonus.controller.ts
 │       ├── bonus.router.ts

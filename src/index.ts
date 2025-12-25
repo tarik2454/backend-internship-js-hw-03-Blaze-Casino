@@ -1,7 +1,10 @@
 import "dotenv/config";
 import mongoose from "mongoose";
+import { createServer } from "http";
+import { Server as SocketIOServer } from "socket.io";
 import app from "./app";
 import { validateEnv } from "./config/env";
+import crashWebSocketHandler from "./modules/crash/crash.ws.handler";
 
 validateEnv();
 
@@ -18,8 +21,20 @@ mongoose
 
 if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
   const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
+
+  const httpServer = createServer(app);
+  const io = new SocketIOServer(httpServer, {
+    cors: {
+      origin: true,
+      credentials: true,
+    },
+  });
+
+  crashWebSocketHandler.initialize(io);
+
+  httpServer.listen(PORT, () => {
     console.log(`Server running on port: ${PORT}`);
+    console.log(`WebSocket server ready on /crash namespace`);
   });
 }
 
