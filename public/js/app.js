@@ -57,6 +57,7 @@ const minesInfo = document.getElementById("mines-info");
 const minesNextMult = document.getElementById("mines-next-mult");
 const minesCurrentWin = document.getElementById("mines-current-win");
 const minesHistoryTable = document.getElementById("mines-history-table");
+const casesHistoryTable = document.getElementById("cases-history-table");
 
 function init() {
   if (token) {
@@ -143,6 +144,7 @@ async function loadUser() {
     window.currentUser = currentUser;
     renderUser();
     loadCases();
+    loadCasesHistory();
     checkActiveMinesGame();
   } catch (err) {
     showToast("Failed to load user: " + err.message, true);
@@ -206,6 +208,7 @@ function switchTab(tab) {
     tabCases.classList.add("active");
     tabCases.classList.remove("secondary");
     casesView.classList.remove("hidden");
+    loadCasesHistory();
   } else if (tab === "mines") {
     tabMines.classList.add("active");
     tabMines.classList.remove("secondary");
@@ -339,6 +342,7 @@ async function openCase(id) {
     }
 
     showWinModal(data.item, caseData.items);
+    loadCasesHistory();
   } catch (err) {
     showToast(err.message, true);
   }
@@ -616,6 +620,50 @@ function renderUser() {
         <div style="font-size: 0.875rem; color: var(--text-dim);">Balance</div>
     </div>
   `;
+}
+
+async function loadCasesHistory() {
+  try {
+    const res = await fetch(`${API_URL}/cases/history?limit=10`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    renderCasesHistory(data.openings);
+  } catch (err) {
+  }
+}
+
+function renderCasesHistory(openings) {
+  if (!casesHistoryTable) return;
+  
+  if (!openings || openings.length === 0) {
+    casesHistoryTable.innerHTML =
+      '<tr><td colspan="6" style="text-align: center; padding: 1rem; color: var(--text-dim);">No history yet</td></tr>';
+    return;
+  }
+
+  casesHistoryTable.innerHTML = openings
+    .map((opening) => {
+      const date = new Date(opening.createdAt).toLocaleString();
+      const profit = opening.profit;
+      const profitClass =
+        profit >= 0
+          ? "color: var(--accent-success);"
+          : "color: var(--accent-error);";
+      const profitSign = profit >= 0 ? "+" : "";
+
+      return `
+      <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+        <td style="padding: 0.75rem 1rem; color: var(--text-dim); font-size: 0.875rem;">${date}</td>
+        <td style="padding: 0.75rem 1rem;">${escapeHtml(opening.caseName)}</td>
+        <td style="padding: 0.75rem 1rem;">${escapeHtml(opening.itemName)}</td>
+        <td style="padding: 0.75rem 1rem; text-transform: capitalize;">${escapeHtml(opening.itemRarity)}</td>
+        <td style="padding: 0.75rem 1rem;">$${opening.itemValue.toFixed(2)}</td>
+        <td style="padding: 0.75rem 1rem; font-weight: 600; ${profitClass}">${profitSign}$${profit.toFixed(2)}</td>
+      </tr>
+    `;
+    })
+    .join("");
 }
 
 function renderCases(cases) {

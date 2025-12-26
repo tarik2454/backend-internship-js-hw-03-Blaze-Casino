@@ -79,6 +79,33 @@
       <div id="cases-view">
         <h2 style="margin-bottom: 1.5rem">Available Cases</h2>
         <div class="grid" id="cases-grid"></div>
+
+        <div style="margin-top: 2rem">
+          <h2 style="margin-bottom: 1rem">Game History</h2>
+          <div class="card" style="padding: 0; overflow: hidden">
+            <table
+              style="width: 100%; border-collapse: collapse; text-align: left"
+            >
+              <thead
+                style="
+                  background-color: rgba(255, 255, 255, 0.05);
+                  color: var(--text-dim);
+                  font-size: 0.875rem;
+                "
+              >
+                <tr>
+                  <th style="padding: 1rem">Time</th>
+                  <th style="padding: 1rem">Case</th>
+                  <th style="padding: 1rem">Item</th>
+                  <th style="padding: 1rem">Rarity</th>
+                  <th style="padding: 1rem">Value</th>
+                  <th style="padding: 1rem">Profit</th>
+                </tr>
+              </thead>
+              <tbody id="cases-history-table"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- Plinko View -->

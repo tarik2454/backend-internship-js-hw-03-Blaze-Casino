@@ -244,6 +244,47 @@ class CasesService {
       session.endSession();
     }
   }
+
+  async getHistory(user: HydratedDocument<IUser>, limit = 10, offset = 0) {
+    const openings = await CaseOpening.find({
+      userId: user._id,
+    })
+      .populate({
+        path: "caseId",
+        select: "name price",
+      })
+      .populate({
+        path: "itemId",
+        populate: { path: "rarityId", select: "name" },
+        select: "name value imageUrl",
+      })
+      .sort({ createdAt: -1 })
+      .skip(offset)
+      .limit(limit);
+
+    const openingsWithProfit = openings.map((opening) => {
+      const openingDoc = opening as any;
+      const caseData = openingDoc.caseId;
+      const item = openingDoc.itemId;
+      const casePrice = caseData?.price || 0;
+      const itemValue = item?.value || 0;
+      const profit = itemValue - casePrice;
+
+      return {
+        id: opening._id.toString(),
+        createdAt: opening.createdAt,
+        caseName: caseData?.name || "Unknown",
+        casePrice,
+        itemName: item?.name || "Unknown",
+        itemValue,
+        itemRarity: item?.rarityId?.name || "Unknown",
+        itemImage: item?.imageUrl || "",
+        profit,
+      };
+    });
+
+    return { openings: openingsWithProfit };
+  }
 }
 
 export default new CasesService();

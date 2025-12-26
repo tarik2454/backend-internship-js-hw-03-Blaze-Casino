@@ -7,8 +7,8 @@ import {
   caseOpeningLimiter,
   generalLimiter,
 } from "../../middlewares/index";
-import { validateBody } from "../../decorators/index";
-import { openCaseSchema } from "./cases.schema";
+import { validateBody, validateQuery } from "../../decorators/index";
+import { openCaseSchema, getHistorySchema } from "./cases.schema";
 
 const caseRouter = express.Router();
 
@@ -30,6 +30,14 @@ caseRouter.post(
   caseOpeningLimiter,
   validateBody(openCaseSchema),
   casesController.openCase
+);
+
+caseRouter.get(
+  "/history",
+  authenticate,
+  generalLimiter,
+  validateQuery(getHistorySchema),
+  casesController.getHistory
 );
 
 export { caseRouter };
