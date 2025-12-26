@@ -15,6 +15,14 @@ const caseRouter = express.Router();
 caseRouter.get("/", authenticate, generalLimiter, casesController.getAllCases);
 
 caseRouter.get(
+  "/history",
+  authenticate,
+  generalLimiter,
+  validateQuery(getHistorySchema),
+  casesController.getHistory
+);
+
+caseRouter.get(
   "/:id",
   authenticate,
   generalLimiter,
@@ -30,14 +38,6 @@ caseRouter.post(
   caseOpeningLimiter,
   validateBody(openCaseSchema),
   casesController.openCase
-);
-
-caseRouter.get(
-  "/history",
-  authenticate,
-  generalLimiter,
-  validateQuery(getHistorySchema),
-  casesController.getHistory
 );
 
 export { caseRouter };
