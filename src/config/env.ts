@@ -1,4 +1,4 @@
-const requiredEnvVars = ["DB_HOST", "JWT_SECRET"];
+const requiredEnvVars = ["DB_HOST", "JWT_SECRET", "PORT", "NODE_ENV"];
 
 export function validateEnv(): void {
   const missing = requiredEnvVars.filter((key) => !process.env[key]);

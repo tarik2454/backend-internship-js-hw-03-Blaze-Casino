@@ -380,6 +380,83 @@ Content-Type: application/json
 
 ---
 
+#### История открытий кейсов
+
+**GET** `/cases/history`
+
+Возвращает историю открытий кейсов текущего пользователя.
+
+**Заголовки:**
+
+```
+Authorization: Bearer <token>
+```
+
+**Query параметры:**
+
+- `limit`: Максимальное количество записей (default: 10, max: 10) - опционально
+- `offset`: Смещение для пагинации (default: 0) - опционально
+
+**Тело запроса:** отсутствует
+
+**Пример запроса:**
+
+```
+GET /api/cases/history?limit=10&offset=0
+```
+
+**Успешный ответ (200):**
+
+```json
+{
+  "openings": [
+    {
+      "id": "65a1b2c3d4e5f6g7h8i9j0o1",
+      "createdAt": "2024-01-15T12:00:00.000Z",
+      "caseName": "Starter Case",
+      "casePrice": 100,
+      "itemName": "AK-47 Redline",
+      "itemValue": 50,
+      "itemRarity": "Rare",
+      "itemImage": "https://example.com/ak47-redline.jpg",
+      "profit": -50
+    },
+    {
+      "id": "65a1b2c3d4e5f6g7h8i9j0o2",
+      "createdAt": "2024-01-15T11:30:00.000Z",
+      "caseName": "Premium Case",
+      "casePrice": 500,
+      "itemName": "Knife Butterfly",
+      "itemValue": 1000,
+      "itemRarity": "Legendary",
+      "itemImage": "https://example.com/knife-butterfly.jpg",
+      "profit": 500
+    }
+  ]
+}
+```
+
+**Поля ответа:**
+
+- `id` - ID записи об открытии
+- `createdAt` - Время открытия кейса
+- `caseName` - Название открытого кейса
+- `casePrice` - Стоимость кейса
+- `itemName` - Название выпавшего предмета
+- `itemValue` - Стоимость выпавшего предмета
+- `itemRarity` - Редкость предмета (Common, Uncommon, Rare, Epic, Legendary)
+- `itemImage` - URL изображения предмета
+- `profit` - Прибыль/убыток (itemValue - casePrice). Положительное значение означает прибыль, отрицательное - убыток
+
+**Ошибки:**
+
+- `401` - Не авторизован
+- `400` - Неверные параметры запроса
+
+**Примечание:** История отсортирована по времени создания в порядке убывания (самые новые сначала).
+
+---
+
 ### Мины (Mines)
 
 Базовый путь: `/mines`
@@ -1305,7 +1382,7 @@ API использует систему ограничения частоты з
 4. **General Limiter** - 100 запросов в секунду
 
    - Применяется к остальным эндпоинтам:
-     - `GET /api/cases`, `GET /api/cases/:id`
+     - `GET /api/cases`, `GET /api/cases/:id`, `GET /api/cases/history`
      - `GET /api/mines/active`, `GET /api/mines/history`, `POST /api/mines/cashout`
      - `GET /api/plinko/multipliers`, `GET /api/plinko/history`, `GET /api/plinko/recent`
      - `GET /api/crash/current`, `GET /api/crash/history`, `GET /api/crash/bets/history`, `POST /api/crash/cashout`
@@ -1530,7 +1607,6 @@ src/
 - `npm start` - Запуск скомпилированного приложения
 - `npm run lint` - Проверка кода линтером
 - `npm run lint:fix` - Автоматическое исправление ошибок линтера
-- `npm test` - Запуск тестов
 - `npm run seed:rarities` - Заполнение базы данных базовыми редкостями (Common, Rare, Epic, Legendary, etc.)
 - `npm run seed:complete` - Полное заполнение базы данных (редкости, предметы, кейсы)
 

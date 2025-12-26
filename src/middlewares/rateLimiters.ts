@@ -4,13 +4,11 @@ import { Request } from "express";
 const getUserKey = (
   req: Request & { user?: { _id?: { toString(): string } } }
 ): string => {
-  // Try to get user ID first (for authenticated requests)
   if (req.user?._id) {
     return req.user._id.toString();
   }
-  // Fallback to IP address
   const ip =
-    (req as any).ip ||
+    req.ip ||
     req.socket?.remoteAddress ||
     req.headers["x-forwarded-for"] ||
     "unknown";
