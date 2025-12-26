@@ -1,5 +1,5 @@
 /* eslint-env browser */
-const API_URL = window.API_URL || window.location.origin + "/api";
+const API_URL = window.API_URL;
 let token = localStorage.getItem("token");
 let currentUser = null;
 let currentMinesGameId = null;

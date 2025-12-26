@@ -1,6 +1,6 @@
 /* eslint-env browser */
 /* global io */
-const API_URL = window.API_URL || window.location.origin + "/api";
+// API_URL is declared in app.js, use window.API_URL directly
 let socket = null;
 let currentGameId = null;
 let currentBetId = null;
@@ -198,7 +198,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const token = localStorage.getItem("token");
       if (!token) return;
 
-      const response = await fetch(`${API_URL}/crash/current`, {
+      const response = await fetch(`${window.API_URL}/crash/current`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -269,7 +269,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!token || !historyTable) return;
 
       const response = await fetch(
-        `${API_URL}/crash/bets/history?limit=10&offset=0`,
+        `${window.API_URL}/crash/bets/history?limit=10&offset=0`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -369,7 +369,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (autoCashout !== undefined) {
           requestBody.autoCashout = autoCashout;
         }
-        const response = await fetch(`${API_URL}/crash/bet`, {
+        const response = await fetch(`${window.API_URL}/crash/bet`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -466,7 +466,7 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        const response = await fetch(`${API_URL}/crash/cashout`, {
+        const response = await fetch(`${window.API_URL}/crash/cashout`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
