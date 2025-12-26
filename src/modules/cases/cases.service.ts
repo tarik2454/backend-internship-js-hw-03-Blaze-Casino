@@ -24,6 +24,23 @@ const toPopulatedCaseItem = (doc: Document): PopulatedCaseItem => {
   return doc as unknown as PopulatedCaseItem;
 };
 
+interface PopulatedCaseOpening {
+  _id: mongoose.Types.ObjectId;
+  createdAt: Date;
+  caseId: {
+    name: string;
+    price: number;
+  } | null;
+  itemId: {
+    name: string;
+    value: number;
+    imageUrl: string;
+    rarityId: {
+      name: string;
+    };
+  } | null;
+}
+
 class CasesService {
   async getAllCases(): Promise<CasesResponse> {
     const cases = await Case.find({ isActive: true });
@@ -129,31 +146,29 @@ class CasesService {
 
     try {
       const netChange = winningItem.value - caseToOpen.price;
-      const updatedUser = await mongoose
-        .model("User")
-        .findOneAndUpdate(
-          {
-            _id: user._id,
-            balance: { $gte: caseToOpen.price },
+      const updatedUser = await mongoose.model("User").findOneAndUpdate(
+        {
+          _id: user._id,
+          balance: { $gte: caseToOpen.price },
+        },
+        {
+          $inc: {
+            balance: netChange,
+            totalWagered: caseToOpen.price,
+            gamesPlayed: 1,
+            totalWon: winningItem.value,
           },
-          {
-            $inc: {
-              balance: netChange,
-              totalWagered: caseToOpen.price,
-              gamesPlayed: 1,
-              totalWon: winningItem.value,
-            },
-            $set: {
-              clientSeed: clientSeed,
-              serverSeed: user.serverSeed || serverSeed,
-            },
+          $set: {
+            clientSeed: clientSeed,
+            serverSeed: user.serverSeed || serverSeed,
           },
-          {
-            session,
-            new: true,
-            runValidators: true,
-          }
-        );
+        },
+        {
+          session,
+          new: true,
+          runValidators: true,
+        }
+      );
 
       if (!updatedUser) {
         throw HttpError(400, "Insufficient balance or user not found");
@@ -263,7 +278,7 @@ class CasesService {
       .limit(limit);
 
     const openingsWithProfit = openings.map((opening) => {
-      const openingDoc = opening as any;
+      const openingDoc = opening as unknown as PopulatedCaseOpening;
       const caseData = openingDoc.caseId;
       const item = openingDoc.itemId;
       const casePrice = caseData?.price || 0;
