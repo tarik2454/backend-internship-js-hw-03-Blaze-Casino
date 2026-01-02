@@ -11,7 +11,8 @@ export type AuditAction =
   | "CLAIM_BONUS"
   | "LOGIN"
   | "LOGOUT"
-  | "REGISTER";
+  | "REGISTER"
+  | "REFRESH_TOKEN";
 
 export type EntityType =
   | "User"

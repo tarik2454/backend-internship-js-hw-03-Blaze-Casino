@@ -1,10 +1,8 @@
-import jwt from "jsonwebtoken";
 import { Response, NextFunction } from "express";
 import { User } from "../modules/users/models/users.model";
 import { HttpError } from "../helpers/index";
 import { RequestWithUser } from "../types";
-
-const { JWT_SECRET } = process.env;
+import { tokenManager } from "../modules/auth/tokens";
 
 export const authenticate = async (
   req: RequestWithUser,
@@ -18,9 +16,9 @@ export const authenticate = async (
     return;
   }
   try {
-    const payload = jwt.verify(token, JWT_SECRET as string) as { id: string };
-    const user = await User.findById(payload.id);
-    if (!user || !user.token || user.token !== token) {
+    const payload = tokenManager.verifyAccessToken(token);
+    const user = await User.findById(payload.userId);
+    if (!user) {
       next(HttpError(401));
       return;
     }
