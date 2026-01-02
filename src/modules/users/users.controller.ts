@@ -1,30 +1,9 @@
-import bcrypt from "bcryptjs";
 import { Request, Response } from "express";
-import { User } from "./models/users.model";
-import { IUser } from "./models/users.types";
 import { HttpError } from "../../helpers/index";
 import { ctrlWrapper } from "../../decorators/index";
 import { AuthenticatedRequest } from "../../types";
-import { UserSignupDTO, UserUpdateDTO } from "./users.schema";
-
-export const createUser = async (userData: UserSignupDTO): Promise<IUser> => {
-  const { email, password, ...restData } = userData;
-
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    throw HttpError(409, "Email already in use");
-  }
-
-  const hashPassword = await bcrypt.hash(password, 10);
-
-  const newUser = await User.create({
-    ...restData,
-    email,
-    password: hashPassword,
-  });
-
-  return newUser;
-};
+import { UserUpdateDTO } from "./users.schema";
+import usersService from "./users.service";
 
 const getCurrent = async (
   req: AuthenticatedRequest,
@@ -60,9 +39,10 @@ const updateUser = async (
   if (gamesPlayed !== undefined) updateData.gamesPlayed = gamesPlayed;
   if (totalWon !== undefined) updateData.totalWon = totalWon;
 
-  const updated = await User.findByIdAndUpdate(req.user._id, updateData, {
-    new: true,
-  }).select("username email balance totalWagered gamesPlayed totalWon");
+  const updated = await usersService.updateUser(
+    req.user._id.toString(),
+    updateData
+  );
 
   if (!updated) {
     throw HttpError(404, "User not found");
@@ -72,7 +52,7 @@ const updateUser = async (
 };
 
 const getAllUsers = async (_req: Request, res: Response): Promise<void> => {
-  const users = await User.find({}, "username gamesPlayed balance");
+  const users = await usersService.getAllUsers();
 
   res.json(users);
 };

@@ -68,7 +68,11 @@ npm start
 
 Базовый URL: `http://localhost:3000/api`
 
-Все эндпоинты (кроме регистрации и входа) требуют авторизации через JWT токен в заголовке `Authorization: Bearer <token>`.
+Все эндпоинты (кроме регистрации и входа) требуют авторизации через Access Token (JWT) в заголовке `Authorization: Bearer <accessToken>`.
+
+Система использует два типа токенов:
+- **Access Token** - JWT токен с коротким сроком жизни (15 минут), используется для авторизации запросов
+- **Refresh Token** - токен с долгим сроком жизни (7 дней), хранится в БД, используется для обновления access токенов
 
 ### Аутентификация
 
@@ -126,7 +130,7 @@ Content-Type: application/json
 
 **POST** `/auth/login`
 
-Авторизует пользователя и возвращает JWT токен.
+Авторизует пользователя и возвращает пару токенов (access token и refresh token).
 
 **Заголовки:**
 
@@ -156,9 +160,19 @@ Content-Type: application/json
 
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6...",
+  "userId": "65a1b2c3d4e5f6g7h8i9j0k1",
+  "userName": "john_doe"
 }
 ```
+
+**Поля ответа:**
+
+- `accessToken` - JWT токен для авторизации запросов (срок жизни: 15 минут)
+- `refreshToken` - Токен для обновления access token (срок жизни: 7 дней)
+- `userId` - ID пользователя
+- `userName` - Имя пользователя
 
 **Ошибки:**
 
@@ -167,16 +181,69 @@ Content-Type: application/json
 
 ---
 
-#### Выход из системы
+#### Обновление токенов
 
-**POST** `/auth/logout`
+**POST** `/auth/refresh`
 
-Выходит из системы, очищая токен пользователя.
+Обновляет пару токенов (access и refresh) используя refresh token. Используется когда access token истек.
 
 **Заголовки:**
 
 ```
-Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+**Тело запроса:**
+
+```json
+{
+  "refreshToken": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6..."
+}
+```
+
+**Пример запроса:**
+
+```json
+{
+  "refreshToken": "a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6..."
+}
+```
+
+**Успешный ответ (200):**
+
+```json
+{
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7...",
+  "userId": "65a1b2c3d4e5f6g7h8i9j0k1"
+}
+```
+
+**Поля ответа:**
+
+- `accessToken` - Новый JWT токен (срок жизни: 15 минут)
+- `refreshToken` - Новый refresh токен (срок жизни: 7 дней, сохраняется sessionStart)
+- `userId` - ID пользователя
+
+**Ошибки:**
+
+- `400` - Неверный формат данных
+- `401` - Неверный или истекший refresh token, сессия истекла (максимум 30 дней)
+
+**Примечание:** После обновления токенов старый refresh token удаляется (token rotation). Максимальный срок сессии составляет 30 дней с момента первого логина.
+
+---
+
+#### Выход из системы
+
+**POST** `/auth/logout`
+
+Выходит из системы, удаляя все refresh токены пользователя.
+
+**Заголовки:**
+
+```
+Authorization: Bearer <accessToken>
 Content-Type: application/json
 ```
 
@@ -192,7 +259,9 @@ Content-Type: application/json
 
 **Ошибки:**
 
-- `401` - Не авторизован (отсутствует или неверный токен)
+- `401` - Не авторизован (отсутствует или неверный access token)
+
+**Примечание:** После logout все refresh токены пользователя удаляются из БД. Access token остается валидным до истечения срока действия (15 минут), но не может быть обновлен, так как refresh токены удалены.
 
 ---
 
@@ -211,7 +280,7 @@ Content-Type: application/json
 **Заголовки:**
 
 ```
-Authorization: Bearer <token>
+Authorization: Bearer <accessToken>
 ```
 
 **Тело запроса:** отсутствует
@@ -254,7 +323,7 @@ Authorization: Bearer <token>
 **Заголовки:**
 
 ```
-Authorization: Bearer <token>
+Authorization: Bearer <accessToken>
 ```
 
 **Параметры URL:**
@@ -389,7 +458,7 @@ Content-Type: application/json
 **Заголовки:**
 
 ```
-Authorization: Bearer <token>
+Authorization: Bearer <accessToken>
 ```
 
 **Query параметры:**
@@ -927,7 +996,7 @@ GET /api/cases/history?limit=10&offset=0
 **Заголовки:**
 
 ```
-Authorization: Bearer <token>
+Authorization: Bearer <accessToken>
 ```
 
 **Тело запроса:** отсутствует
@@ -1017,7 +1086,7 @@ Content-Type: application/json
 **Заголовки:**
 
 ```
-Authorization: Bearer <token>
+Authorization: Bearer <accessToken>
 ```
 
 **Query параметры:**
@@ -1094,7 +1163,7 @@ Authorization: Bearer <token>
 **Заголовки:**
 
 ```
-Authorization: Bearer <token>
+Authorization: Bearer <accessToken>
 ```
 
 **Query параметры:**
@@ -1200,7 +1269,7 @@ GET /api/audit?userId=65a1b2c3d4e5f6g7h8i9j0k1&entityType=MinesGame&limit=50&off
 
 Базовый путь: `/users`
 
-Все эндпоинты требуют авторизации через JWT токен.
+Все эндпоинты требуют авторизации через Access Token (JWT).
 
 #### Получить текущего пользователя
 
@@ -1211,7 +1280,7 @@ GET /api/audit?userId=65a1b2c3d4e5f6g7h8i9j0k1&entityType=MinesGame&limit=50&off
 **Заголовки:**
 
 ```
-Authorization: Bearer <token>
+Authorization: Bearer <accessToken>
 ```
 
 **Тело запроса:** отсутствует
@@ -1244,7 +1313,7 @@ Authorization: Bearer <token>
 **Заголовки:**
 
 ```
-Authorization: Bearer <token>
+Authorization: Bearer <accessToken>
 ```
 
 **Тело запроса:** отсутствует
@@ -1332,18 +1401,40 @@ Content-Type: application/json
 
 ## Авторизация
 
-Большинство эндпоинтов требуют JWT токен для доступа. Токен должен быть передан в заголовке `Authorization` в следующем формате:
+Большинство эндпоинтов требуют Access Token (JWT) для доступа. Токен должен быть передан в заголовке `Authorization` в следующем формате:
 
 ```
-Authorization: Bearer <your_jwt_token>
+Authorization: Bearer <accessToken>
 ```
 
-Токен получается при успешной авторизации через эндпоинт `/api/auth/login`. Токен действителен в течение 23 часов.
+### Система токенов
+
+API использует систему из двух токенов:
+
+1. **Access Token** (JWT)
+   - Срок жизни: 15 минут
+   - Хранится только на клиенте
+   - Используется для авторизации всех API запросов
+   - Не требует обращения к БД для проверки
+
+2. **Refresh Token**
+   - Срок жизни: 7 дней
+   - Хранится в базе данных
+   - Используется для обновления access token
+   - Максимальный срок сессии: 30 дней с момента первого логина
+
+### Flow работы токенов
+
+1. **Логин**: `POST /api/auth/login` → возвращает `accessToken` и `refreshToken`
+2. **Запросы к API**: Используйте `accessToken` в заголовке `Authorization: Bearer <accessToken>`
+3. **Access token истек**: `POST /api/auth/refresh` с `refreshToken` → получаете новую пару токенов
+4. **Logout**: `POST /api/auth/logout` → удаляет все refresh токены
 
 ### Эндпоинты, не требующие авторизации:
 
 - `POST /api/auth/register` - Регистрация нового пользователя
 - `POST /api/auth/login` - Вход в систему
+- `POST /api/auth/refresh` - Обновление токенов
 
 ### Эндпоинты, требующие авторизации:
 
@@ -1390,6 +1481,7 @@ API использует систему ограничения частоты з
      - `GET /api/leaderboard`
      - `GET /api/audit`
      - `GET /api/users/*`
+     - `POST /api/auth/refresh`
 
 5. **Auth Limiters** - для аутентификации
    - `POST /api/auth/login` - 5 попыток за 15 минут

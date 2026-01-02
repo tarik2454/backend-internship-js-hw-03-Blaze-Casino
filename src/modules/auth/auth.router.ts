@@ -3,6 +3,7 @@ import authController from "./auth.controller";
 import { validateBody } from "../../decorators/index";
 import { userSignupSchema, userSigninSchema } from "../users/users.schema";
 import { authenticate, collectRequestInfo } from "../../middlewares/index";
+import { refreshTokenSchema } from "./tokens";
 
 const authRouter = express.Router();
 
@@ -16,6 +17,13 @@ authRouter.post(
   "/login",
   validateBody(userSigninSchema),
   authController.signin
+);
+
+authRouter.post(
+  "/refresh",
+  validateBody(refreshTokenSchema),
+  collectRequestInfo,
+  authController.refresh
 );
 
 authRouter.post(
