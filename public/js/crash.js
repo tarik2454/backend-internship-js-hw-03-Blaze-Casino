@@ -195,14 +195,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function loadCurrentGame() {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
+      if (!window.authenticatedFetch) return;
 
-      const response = await fetch(`${window.API_URL}/crash/current`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await window.authenticatedFetch(`${window.API_URL}/crash/current`);
 
       if (!response.ok) {
         // If no active game, reset state to allow betting when game is created
@@ -265,16 +260,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function loadHistory() {
     try {
-      const token = localStorage.getItem("token");
-      if (!token || !historyTable) return;
+      if (!window.authenticatedFetch || !historyTable) return;
 
-      const response = await fetch(
-        `${window.API_URL}/crash/bets/history?limit=10&offset=0`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const response = await window.authenticatedFetch(
+        `${window.API_URL}/crash/bets/history?limit=10&offset=0`
       );
 
       if (!response.ok) {
@@ -352,8 +341,7 @@ document.addEventListener("DOMContentLoaded", () => {
       betBtn.disabled = true;
 
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
+        if (!window.authenticatedFetch) {
           betBtn.disabled = false;
           return;
         }
@@ -369,11 +357,10 @@ document.addEventListener("DOMContentLoaded", () => {
         if (autoCashout !== undefined) {
           requestBody.autoCashout = autoCashout;
         }
-        const response = await fetch(`${window.API_URL}/crash/bet`, {
+        const response = await window.authenticatedFetch(`${window.API_URL}/crash/bet`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(requestBody),
         });
@@ -460,17 +447,15 @@ document.addEventListener("DOMContentLoaded", () => {
       cashoutBtn.disabled = true;
 
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
+        if (!window.authenticatedFetch) {
           cashoutBtn.disabled = false;
           return;
         }
 
-        const response = await fetch(`${window.API_URL}/crash/cashout`, {
+        const response = await window.authenticatedFetch(`${window.API_URL}/crash/cashout`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             betId: currentBetId,

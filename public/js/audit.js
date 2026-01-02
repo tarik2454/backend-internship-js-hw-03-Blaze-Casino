@@ -80,8 +80,7 @@ async function loadAuditLogs() {
   tableEl.innerHTML = "";
 
   try {
-    const token = localStorage.getItem("token");
-    if (!token) {
+    if (!window.authenticatedFetch) {
       throw new Error("Not authenticated");
     }
 
@@ -92,13 +91,8 @@ async function loadAuditLogs() {
     params.append("limit", currentAuditFilters.limit.toString());
     params.append("offset", currentAuditFilters.offset.toString());
 
-    const response = await fetch(
-      `${window.API_URL}/audit?${params.toString()}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+    const response = await window.authenticatedFetch(
+      `${window.API_URL}/audit?${params.toString()}`
     );
 
     if (!response.ok) {

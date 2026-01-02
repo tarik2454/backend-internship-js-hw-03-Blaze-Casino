@@ -28,12 +28,9 @@ function getBonusElements() {
 
 async function loadBonusStatus(shouldLog = false) {
   try {
-    const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!window.authenticatedFetch) return;
 
-    const res = await fetch(`${getApiUrl()}/bonus/status`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await window.authenticatedFetch(`${getApiUrl()}/bonus/status`);
 
     if (!res.ok) {
       if (res.status === 401) {
@@ -133,8 +130,7 @@ function startCountdown(seconds) {
 
 const claimBonus = async function () {
   try {
-    const token = localStorage.getItem("token");
-    if (!token) {
+    if (!window.authenticatedFetch) {
       if (typeof showToast === "function") {
         showToast("Not authenticated", true);
       }
@@ -153,10 +149,9 @@ const claimBonus = async function () {
     bonusClaimBtn.disabled = true;
     bonusClaimBtn.textContent = "Claiming...";
 
-    const res = await fetch(`${getApiUrl()}/bonus/claim`, {
+    const res = await window.authenticatedFetch(`${getApiUrl()}/bonus/claim`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     });

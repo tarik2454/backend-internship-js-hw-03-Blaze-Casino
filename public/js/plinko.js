@@ -57,16 +57,10 @@ document.addEventListener("DOMContentLoaded", () => {
     currentLines = lines;
 
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
+      if (!window.authenticatedFetch) return;
 
-      const response = await fetch(
-        `/api/plinko/multipliers?risk=${risk}&lines=${lines}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const response = await window.authenticatedFetch(
+        `/api/plinko/multipliers?risk=${risk}&lines=${lines}`
       );
 
       if (response.ok) {
@@ -138,8 +132,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       try {
         const apiUrl = "/api/plinko/drop";
-        const token = localStorage.getItem("token");
-        if (!token) {
+        if (!window.authenticatedFetch) {
           if (window.currentUser) {
             window.currentUser.balance += totalBet;
             if (typeof window.renderUser === "function") {
@@ -150,11 +143,10 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        const response = await fetch(apiUrl, {
+        const response = await window.authenticatedFetch(apiUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ amount: bet, risk, lines, balls }),
         });
@@ -473,14 +465,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!historyTable) return;
 
     try {
-      const token = localStorage.getItem("token");
-      if (!token) return;
+      if (!window.authenticatedFetch) return;
 
-      const response = await fetch("/api/plinko/history?limit=10", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await window.authenticatedFetch("/api/plinko/history?limit=10");
 
       if (response.ok) {
         const data = await response.json();

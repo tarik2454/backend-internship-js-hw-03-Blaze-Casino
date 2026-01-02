@@ -1,8 +1,11 @@
 /* eslint-env browser */
 const API_URL = window.API_URL;
-let token = localStorage.getItem("token");
+let accessToken = localStorage.getItem("accessToken");
+let refreshToken = localStorage.getItem("refreshToken");
 let currentUser = null;
 let currentMinesGameId = null;
+let isRefreshing = false;
+let refreshPromise = null;
 
 /**
  * Escapes HTML special characters to prevent XSS attacks
@@ -60,7 +63,7 @@ const minesHistoryTable = document.getElementById("mines-history-table");
 const casesHistoryTable = document.getElementById("cases-history-table");
 
 function init() {
-  if (token) {
+  if (accessToken) {
     showMain();
     loadUser();
   } else {
@@ -78,8 +81,10 @@ async function login(email, password) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.message || "Login failed");
 
-    token = data.token;
-    localStorage.setItem("token", token);
+    accessToken = data.accessToken;
+    refreshToken = data.refreshToken;
+    localStorage.setItem("accessToken", accessToken);
+    localStorage.setItem("refreshToken", refreshToken);
 
     showMain();
     await loadUser();
@@ -128,11 +133,103 @@ window.addEventListener("balance:update", (event) => {
   }
 });
 
+async function refreshTokens() {
+  if (isRefreshing && refreshPromise) {
+    return refreshPromise;
+  }
+
+  if (!refreshToken) {
+    throw new Error("No refresh token available");
+  }
+
+  isRefreshing = true;
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_URL}/auth/refresh`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || "Failed to refresh tokens");
+      }
+
+      accessToken = data.accessToken;
+      refreshToken = data.refreshToken;
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("refreshToken", refreshToken);
+
+      return accessToken;
+    } catch (err) {
+      accessToken = null;
+      refreshToken = null;
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      throw err;
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+}
+
+async function getAccessToken() {
+  if (accessToken) {
+    return accessToken;
+  }
+
+  if (refreshToken) {
+    try {
+      await refreshTokens();
+      return accessToken;
+    } catch (err) {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+async function authenticatedFetch(url, options = {}) {
+  let token = await getAccessToken();
+  if (!token) {
+    throw new Error("Not authenticated");
+  }
+
+  const headers = {
+    ...options.headers,
+    Authorization: `Bearer ${token}`,
+  };
+
+  let res = await fetch(url, { ...options, headers });
+
+  if (res.status === 401 && refreshToken && !isRefreshing) {
+    try {
+      await refreshTokens();
+      token = accessToken;
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+        res = await fetch(url, { ...options, headers });
+      } else {
+        logout();
+        throw new Error("Session expired. Please login again.");
+      }
+    } catch (err) {
+      logout();
+      throw new Error("Session expired. Please login again.");
+    }
+  }
+
+  return res;
+}
+
 async function loadUser() {
   try {
-    const res = await fetch(`${API_URL}/users/current`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await authenticatedFetch(`${API_URL}/users/current`);
     if (!res.ok) {
       if (res.status === 401) {
         logout();
@@ -148,15 +245,29 @@ async function loadUser() {
     checkActiveMinesGame();
   } catch (err) {
     showToast("Failed to load user: " + err.message, true);
-    logout();
+    if (err.message.includes("Not authenticated") || err.message.includes("Session expired")) {
+      logout();
+    }
   }
 }
 
-function logout() {
-  token = null;
+async function logout() {
+  if (accessToken) {
+    try {
+      await authenticatedFetch(`${API_URL}/auth/logout`, {
+        method: "POST",
+      });
+    } catch (err) {
+      // Ignore errors on logout
+    }
+  }
+
+  accessToken = null;
+  refreshToken = null;
   currentUser = null;
   window.currentUser = null;
-  localStorage.removeItem("token");
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
   showAuth();
 }
 
@@ -267,9 +378,7 @@ if (tabAudit) tabAudit.addEventListener("click", () => switchTab("audit"));
 
 async function loadCases() {
   try {
-    const res = await fetch(`${API_URL}/cases`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await authenticatedFetch(`${API_URL}/cases`);
     if (!res.ok) {
       throw new Error("Failed to load cases");
     }
@@ -282,9 +391,7 @@ async function loadCases() {
 
 async function openCase(id) {
   try {
-    const caseRes = await fetch(`${API_URL}/cases/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const caseRes = await authenticatedFetch(`${API_URL}/cases/${id}`);
     if (!caseRes.ok) throw new Error("Failed to load case details");
     const caseData = await caseRes.json();
     const casePrice = caseData.price;
@@ -307,10 +414,9 @@ async function openCase(id) {
       );
     }
 
-    const res = await fetch(`${API_URL}/cases/${id}/open`, {
+    const res = await authenticatedFetch(`${API_URL}/cases/${id}/open`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({}),
@@ -352,9 +458,7 @@ window.openCase = openCase;
 
 async function checkActiveMinesGame() {
   try {
-    const res = await fetch(`${API_URL}/mines/active`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await authenticatedFetch(`${API_URL}/mines/active`);
     const data = await res.json();
 
     if (data.game) {
@@ -375,10 +479,9 @@ async function startMinesGame() {
     const amount = parseFloat(minesAmountInput.value);
     const minesCount = parseInt(minesCountInput.value);
 
-    const res = await fetch(`${API_URL}/mines/start`, {
+    const res = await authenticatedFetch(`${API_URL}/mines/start`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ amount, minesCount }),
@@ -408,10 +511,9 @@ async function revealTile(position) {
   if (!currentMinesGameId) return;
 
   try {
-    const res = await fetch(`${API_URL}/mines/reveal`, {
+    const res = await authenticatedFetch(`${API_URL}/mines/reveal`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ gameId: currentMinesGameId, position }),
@@ -453,10 +555,9 @@ async function cashoutMines() {
   if (!currentMinesGameId) return;
 
   try {
-    const res = await fetch(`${API_URL}/mines/cashout`, {
+    const res = await authenticatedFetch(`${API_URL}/mines/cashout`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ gameId: currentMinesGameId }),
@@ -542,9 +643,7 @@ function endMinesGame(allMines = []) {
 
 async function loadMinesHistory() {
   try {
-    const res = await fetch(`${API_URL}/mines/history?limit=10`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await authenticatedFetch(`${API_URL}/mines/history?limit=10`);
     const data = await res.json();
     renderMinesHistory(data.games);
   } catch (err) {
@@ -624,9 +723,7 @@ function renderUser() {
 
 async function loadCasesHistory() {
   try {
-    const res = await fetch(`${API_URL}/cases/history?limit=10`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await authenticatedFetch(`${API_URL}/cases/history?limit=10`);
     const data = await res.json();
     renderCasesHistory(data.openings);
   } catch (err) {
@@ -949,6 +1046,10 @@ document.getElementById("auth-submit").addEventListener("click", (e) => {
   }
 });
 
-logoutBtn.addEventListener("click", logout);
+logoutBtn.addEventListener("click", () => logout());
+
+// Export getAccessToken for use in other scripts
+window.getAccessToken = getAccessToken;
+window.authenticatedFetch = authenticatedFetch;
 
 init();

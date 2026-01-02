@@ -39,8 +39,7 @@ function getLeaderboardElements() {
 
 async function loadLeaderboard(period = "all") {
   try {
-    const token = localStorage.getItem("token");
-    if (!token) {
+    if (!window.authenticatedFetch) {
       return;
     }
 
@@ -60,9 +59,7 @@ async function loadLeaderboard(period = "all") {
     const apiUrl = getLeaderboardApiUrl();
     const url = `${apiUrl}/leaderboard?period=${period}`;
 
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    const res = await window.authenticatedFetch(url);
 
     if (!res.ok) {
       if (res.status === 401) {
