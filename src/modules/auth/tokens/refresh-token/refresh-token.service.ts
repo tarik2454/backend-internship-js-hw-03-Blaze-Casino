@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
+import { Types } from "mongoose";
 import { HttpError } from "../../../../helpers/index";
-import refreshTokenRepository from "./refresh-token.repository";
+import { RefreshToken } from "../../models/refresh-token.model";
 import {
   REFRESH_TOKEN_EXPIRES_IN_MS,
   MAX_SESSION_AGE_MS,
@@ -14,9 +15,9 @@ class RefreshTokenService {
     const start = sessionStart || now;
     const expiresAt = new Date(now.getTime() + REFRESH_TOKEN_EXPIRES_IN_MS);
 
-    await refreshTokenRepository.create({
+    await RefreshToken.create({
       token: refreshToken,
-      userId,
+      userId: new Types.ObjectId(userId),
       expiresAt,
       sessionStart: start,
     });
@@ -29,7 +30,7 @@ class RefreshTokenService {
       throw HttpError(401, "No token provided");
     }
 
-    const existingToken = await refreshTokenRepository.findByToken(token);
+    const existingToken = await RefreshToken.findOne({ token });
     if (!existingToken) {
       throw HttpError(401, "Invalid token");
     }
@@ -50,13 +51,12 @@ class RefreshTokenService {
   }
 
   async delete(token: string): Promise<void> {
-    await refreshTokenRepository.deleteByToken(token);
+    await RefreshToken.deleteOne({ token });
   }
 
   async deleteAll(userId: string): Promise<void> {
-    await refreshTokenRepository.deleteAllByUserId(userId);
+    await RefreshToken.deleteMany({ userId: new Types.ObjectId(userId) });
   }
 }
 
 export default new RefreshTokenService();
-
