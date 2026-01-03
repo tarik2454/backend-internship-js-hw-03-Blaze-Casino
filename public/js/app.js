@@ -43,12 +43,14 @@ const tabMines = document.getElementById("tab-mines");
 const tabBonus = document.getElementById("tab-bonus");
 const tabCrash = document.getElementById("tab-crash");
 const tabLeaderboard = document.getElementById("tab-leaderboard");
+const tabChat = document.getElementById("tab-chat");
 const tabAudit = document.getElementById("tab-audit");
 const casesView = document.getElementById("cases-view");
 const minesView = document.getElementById("mines-view");
 const bonusView = document.getElementById("bonus-view");
 const crashView = document.getElementById("crash-view");
 const leaderboardView = document.getElementById("leaderboard-view");
+const chatView = document.getElementById("chat-view");
 const auditView = document.getElementById("audit-view");
 
 const minesAmountInput = document.getElementById("mines-amount");
@@ -309,6 +311,13 @@ function switchTab(tab) {
     document.dispatchEvent(new CustomEvent("leaderboard:hidden"));
   }
 
+  if (tabChat) {
+    tabChat.classList.remove("active");
+    tabChat.classList.add("secondary");
+    chatView.classList.add("hidden");
+    document.dispatchEvent(new CustomEvent("chat:hidden"));
+  }
+
   if (tabAudit) {
     tabAudit.classList.remove("active");
     tabAudit.classList.add("secondary");
@@ -358,6 +367,16 @@ function switchTab(tab) {
       leaderboardView.classList.remove("hidden");
       document.dispatchEvent(new CustomEvent("leaderboard:shown"));
     }
+  } else if (tab === "chat") {
+    if (tabChat && chatView) {
+      tabChat.classList.add("active");
+      tabChat.classList.remove("secondary");
+      chatView.classList.remove("hidden");
+      // Не устанавливаем display, так как в HTML уже есть inline стиль display: grid
+      document.dispatchEvent(new CustomEvent("chat:shown"));
+    } else {
+      console.error("Chat tab or view not found:", { tabChat: !!tabChat, chatView: !!chatView });
+    }
   } else if (tab === "audit") {
     if (tabAudit) {
       tabAudit.classList.add("active");
@@ -374,6 +393,7 @@ if (tabPlinko) tabPlinko.addEventListener("click", () => switchTab("plinko"));
 if (tabCrash) tabCrash.addEventListener("click", () => switchTab("crash"));
 if (tabBonus) tabBonus.addEventListener("click", () => switchTab("bonus"));
 if (tabLeaderboard) tabLeaderboard.addEventListener("click", () => switchTab("leaderboard"));
+if (tabChat) tabChat.addEventListener("click", () => switchTab("chat"));
 if (tabAudit) tabAudit.addEventListener("click", () => switchTab("audit"));
 
 async function loadCases() {
