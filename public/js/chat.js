@@ -291,7 +291,7 @@ document.addEventListener("chat:shown", () => {
     const roomsList = document.getElementById("chat-rooms-list");
     const sendBtn = document.getElementById("chat-send-btn");
     const messageInput = document.getElementById("chat-message-input");
-    
+
     if (!messagesContainer) {
       console.error("[Chat] chat-messages not found!");
     }
@@ -304,19 +304,19 @@ document.addEventListener("chat:shown", () => {
     if (!messageInput) {
       console.error("[Chat] chat-message-input not found!");
     }
-    
+
     // Убедиться, что chat-view видим
     if (chatViewEl.classList.contains("hidden")) {
       chatViewEl.classList.remove("hidden");
     }
-    
+
     // Проверить родительский элемент main-section
     const mainSection = document.getElementById("main-section");
     if (mainSection && mainSection.classList.contains("hidden")) {
       console.warn("[Chat] main-section is hidden!");
       mainSection.classList.remove("hidden");
     }
-    
+
     setupChatHandlers();
 
     if (!chatSocket || !chatSocket.connected) {
@@ -327,7 +327,7 @@ document.addEventListener("chat:shown", () => {
 
     updateRoomUI(currentRoom);
     renderMessages(currentRoom);
-    
+
     // Финальная проверка видимости
     const computedStyle = window.getComputedStyle(chatViewEl);
     if (computedStyle.display === "none") {
