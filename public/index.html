@@ -12,12 +12,12 @@
       rel="stylesheet"
     />
     <script>
-      (function() {
+      (function () {
         const hostname = window.location.hostname;
-        if (hostname === 'localhost' || hostname === '127.0.0.1') {
-          window.API_URL = 'http://localhost:3000/api';
+        if (hostname === "localhost" || hostname === "127.0.0.1") {
+          window.API_URL = "http://localhost:3000/api";
         } else {
-          window.API_URL = window.location.origin + '/api';
+          window.API_URL = window.location.origin + "/api";
         }
       })();
     </script>
@@ -72,7 +72,9 @@
         <button id="tab-plinko" class="tab-btn secondary">Plinko</button>
         <button id="tab-crash" class="tab-btn secondary">Crash</button>
         <button id="tab-bonus" class="tab-btn secondary">Bonus</button>
-        <button id="tab-leaderboard" class="tab-btn secondary">Leaderboard</button>
+        <button id="tab-leaderboard" class="tab-btn secondary">
+          Leaderboard
+        </button>
         <button id="tab-chat" class="tab-btn secondary">Chat</button>
         <button id="tab-audit" class="tab-btn secondary">Audit</button>
       </div>
@@ -139,7 +141,9 @@
 
           <!-- Controls -->
           <div class="card">
-            <h2 style="margin-bottom: 0.75rem; font-size: 1.1rem">Plinko Configuration</h2>
+            <h2 style="margin-bottom: 0.75rem; font-size: 1.1rem">
+              Plinko Configuration
+            </h2>
 
             <div style="margin-bottom: 0.75rem">
               <label
@@ -430,7 +434,7 @@
           "
         >
           <!-- Game Area -->
-          <div class="card" style="min-height: 400px; position: relative;">
+          <div class="card" style="min-height: 400px; position: relative">
             <div
               id="crash-multiplier"
               style="
@@ -463,7 +467,7 @@
             </div>
             <canvas
               id="crash-canvas"
-              style="width: 100%; height: 400px; display: block;"
+              style="width: 100%; height: 400px; display: block"
             ></canvas>
           </div>
 
@@ -507,10 +511,7 @@
               />
             </div>
 
-            <button
-              id="crash-bet-btn"
-              style="width: 100%; margin-bottom: 1rem"
-            >
+            <button id="crash-bet-btn" style="width: 100%; margin-bottom: 1rem">
               Place Bet
             </button>
             <button
@@ -539,16 +540,36 @@
                 text-align: center;
               "
             >
-              <div style="color: var(--accent-success); font-weight: 600; margin-bottom: 0.5rem;">
+              <div
+                style="
+                  color: var(--accent-success);
+                  font-weight: 600;
+                  margin-bottom: 0.5rem;
+                "
+              >
                 Cashout Successful!
               </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  margin-bottom: 0.5rem;
+                "
+              >
                 <span style="color: var(--text-dim)">Multiplier:</span>
-                <span id="crash-win-multiplier" style="font-weight: 700; color: #ffd700">-</span>
+                <span
+                  id="crash-win-multiplier"
+                  style="font-weight: 700; color: #ffd700"
+                  >-</span
+                >
               </div>
               <div style="display: flex; justify-content: space-between">
                 <span style="color: var(--text-dim)">Win Amount:</span>
-                <span id="crash-win-amount" style="font-weight: 700; color: var(--accent-success)">-</span>
+                <span
+                  id="crash-win-amount"
+                  style="font-weight: 700; color: var(--accent-success)"
+                  >-</span
+                >
               </div>
             </div>
 
@@ -617,13 +638,19 @@
 
       <!-- Bonus View -->
       <div id="bonus-view" class="hidden">
-        <div class="card" style="max-width: 600px; margin: 0 auto;">
-          <h2 style="margin-bottom: 1.5rem; text-align: center;">Minute Bonus</h2>
+        <div class="card" style="max-width: 600px; margin: 0 auto">
+          <h2 style="margin-bottom: 1.5rem; text-align: center">
+            Minute Bonus
+          </h2>
 
-          <div id="bonus-status" style="margin-bottom: 2rem;">
+          <div id="bonus-status" style="margin-bottom: 2rem">
             <div
               style="
-                background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+                background: linear-gradient(
+                  135deg,
+                  rgba(102, 126, 234, 0.2) 0%,
+                  rgba(118, 75, 162, 0.2) 100%
+                );
                 border: 2px solid rgba(102, 126, 234, 0.3);
                 border-radius: 1rem;
                 padding: 2rem;
@@ -642,7 +669,13 @@
               >
                 $10.00
               </div>
-              <div style="color: var(--text-dim); font-size: 0.875rem; margin-bottom: 1rem;">
+              <div
+                style="
+                  color: var(--text-dim);
+                  font-size: 0.875rem;
+                  margin-bottom: 1rem;
+                "
+              >
                 Bonus Amount
               </div>
               <div
@@ -657,25 +690,104 @@
               >
                 -
               </div>
-              
-              <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+
+              <div
+                style="
+                  display: grid;
+                  grid-template-columns: repeat(3, 1fr);
+                  gap: 1rem;
+                  margin-top: 1.5rem;
+                  padding-top: 1.5rem;
+                  border-top: 1px solid rgba(255, 255, 255, 0.1);
+                "
+              >
                 <div>
-                  <div style="color: var(--text-dim); font-size: 0.75rem; margin-bottom: 0.25rem;">Base Amount</div>
-                  <div id="bonus-base-amount" style="font-size: 1.1rem; font-weight: 600; color: var(--text-light);">$0.00</div>
+                  <div
+                    style="
+                      color: var(--text-dim);
+                      font-size: 0.75rem;
+                      margin-bottom: 0.25rem;
+                    "
+                  >
+                    Base Amount
+                  </div>
+                  <div
+                    id="bonus-base-amount"
+                    style="
+                      font-size: 1.1rem;
+                      font-weight: 600;
+                      color: var(--text-light);
+                    "
+                  >
+                    $0.00
+                  </div>
                 </div>
                 <div>
-                  <div style="color: var(--text-dim); font-size: 0.75rem; margin-bottom: 0.25rem;">Wager Bonus</div>
-                  <div id="bonus-wager-bonus" style="font-size: 1.1rem; font-weight: 600; color: var(--text-light);">$0.00</div>
+                  <div
+                    style="
+                      color: var(--text-dim);
+                      font-size: 0.75rem;
+                      margin-bottom: 0.25rem;
+                    "
+                  >
+                    Wager Bonus
+                  </div>
+                  <div
+                    id="bonus-wager-bonus"
+                    style="
+                      font-size: 1.1rem;
+                      font-weight: 600;
+                      color: var(--text-light);
+                    "
+                  >
+                    $0.00
+                  </div>
                 </div>
                 <div>
-                  <div style="color: var(--text-dim); font-size: 0.75rem; margin-bottom: 0.25rem;">Games Bonus</div>
-                  <div id="bonus-games-bonus" style="font-size: 1.1rem; font-weight: 600; color: var(--text-light);">$0.00</div>
+                  <div
+                    style="
+                      color: var(--text-dim);
+                      font-size: 0.75rem;
+                      margin-bottom: 0.25rem;
+                    "
+                  >
+                    Games Bonus
+                  </div>
+                  <div
+                    id="bonus-games-bonus"
+                    style="
+                      font-size: 1.1rem;
+                      font-weight: 600;
+                      color: var(--text-light);
+                    "
+                  >
+                    $0.00
+                  </div>
                 </div>
               </div>
-              
-              <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-                <div style="color: var(--text-dim); font-size: 0.75rem; margin-bottom: 0.25rem;">Next Claim At</div>
-                <div id="bonus-next-claim-at" style="font-size: 0.875rem; color: var(--text-light);">-</div>
+
+              <div
+                style="
+                  margin-top: 1rem;
+                  padding-top: 1rem;
+                  border-top: 1px solid rgba(255, 255, 255, 0.1);
+                "
+              >
+                <div
+                  style="
+                    color: var(--text-dim);
+                    font-size: 0.75rem;
+                    margin-bottom: 0.25rem;
+                  "
+                >
+                  Next Claim At
+                </div>
+                <div
+                  id="bonus-next-claim-at"
+                  style="font-size: 0.875rem; color: var(--text-light)"
+                >
+                  -
+                </div>
               </div>
             </div>
 
@@ -699,152 +811,240 @@
             >
               Claim Bonus
             </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Leaderboard View -->
-    <div id="leaderboard-view" class="hidden">
-        <div class="card">
-        <h2 style="margin-bottom: 1.5rem; text-align: center;">Leaderboard</h2>
-        
-        <div style="margin-bottom: 1.5rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-          <button id="leaderboard-period-daily" class="secondary" data-period="daily">Daily</button>
-          <button id="leaderboard-period-weekly" class="secondary" data-period="weekly">Weekly</button>
-          <button id="leaderboard-period-monthly" class="secondary" data-period="monthly">Monthly</button>
-          <button id="leaderboard-period-all" class="secondary active" data-period="all">All Time</button>
-        </div>
-
-        <div id="leaderboard-current-user" style="margin-bottom: 1.5rem;"></div>
-
-        <div style="overflow-x: auto;">
-          <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-              <tr style="border-bottom: 2px solid rgba(102, 126, 234, 0.3);">
-                <th style="padding: 0.75rem; text-align: left;">Rank</th>
-                <th style="padding: 0.75rem; text-align: left;">Username</th>
-                <th style="padding: 0.75rem; text-align: right;">Total Wagered</th>
-                <th style="padding: 0.75rem; text-align: right;">Games Played</th>
-                <th style="padding: 0.75rem; text-align: right;">Win Rate</th>
-              </tr>
-            </thead>
-            <tbody id="leaderboard-table-body">
-              <tr>
-                <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-dim);">
-                  Loading...
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-      <!-- Audit Logs View -->
-      <div id="audit-view" class="hidden">
-      <div class="card">
-        <h2 style="margin-bottom: 1.5rem;">Audit Logs</h2>
-        
-        <div style="margin-bottom: 1rem; display: flex; gap: 1rem; flex-wrap: wrap;">
-          <select id="audit-filter-type" style="padding: 0.5rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: white; border-radius: 0.5rem;">
-            <option value="">All Types</option>
-            <option value="User">User</option>
-            <option value="MinesGame">MinesGame</option>
-            <option value="PlinkoDrop">PlinkoDrop</option>
-            <option value="CaseOpening">CaseOpening</option>
-            <option value="BonusClaim">BonusClaim</option>
-            <option value="LeaderboardStats">LeaderboardStats</option>
-          </select>
-          <input 
-            type="number" 
-            id="audit-filter-limit" 
-            placeholder="Limit (max 100)" 
-            value="50" 
-            min="1" 
-            max="100"
-            style="padding: 0.5rem; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: white; border-radius: 0.5rem; width: 150px;"
-          />
-          <button id="audit-refresh-btn" class="secondary" style="padding: 0.5rem 1rem;">🔄 Refresh</button>
-        </div>
-
-        <div id="audit-loading" style="text-align: center; padding: 2rem; color: var(--text-dim);">
-          Loading...
-        </div>
-
-        <div id="audit-error" class="hidden" style="text-align: center; padding: 2rem; color: #ff4444;"></div>
-
-        <div id="audit-stats" style="margin-bottom: 1rem; padding: 1rem; background: rgba(255, 255, 255, 0.05); border-radius: 0.5rem;">
-          <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
-            <div>
-              <div style="color: var(--text-dim); font-size: 0.875rem;">Total Logs</div>
-              <div id="audit-total" style="font-size: 1.25rem; font-weight: 600;">-</div>
-            </div>
-            <div>
-              <div style="color: var(--text-dim); font-size: 0.875rem;">Showing</div>
-              <div id="audit-showing" style="font-size: 1.25rem; font-weight: 600;">-</div>
-            </div>
           </div>
         </div>
+      </div>
 
-        <div class="card" style="padding: 0; overflow-x: auto;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
-            <thead style="background-color: rgba(255, 255, 255, 0.05); color: var(--text-dim);">
-              <tr>
-                <th style="padding: 0.75rem; text-align: left;">Time</th>
-                <th style="padding: 0.75rem; text-align: left;">Action</th>
-                <th style="padding: 0.75rem; text-align: left;">Type</th>
-                <th style="padding: 0.75rem; text-align: left;">User</th>
-                <th style="padding: 0.75rem; text-align: left;">IP</th>
-                <th style="padding: 0.75rem; text-align: left;">Details</th>
-              </tr>
-            </thead>
-            <tbody id="audit-logs-table">
-              <tr>
-                <td colspan="6" style="padding: 2rem; text-align: center; color: var(--text-dim);">
-                  No logs found
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <!-- Leaderboard View -->
+      <div id="leaderboard-view" class="hidden">
+        <div class="card">
+          <h2 style="margin-bottom: 1.5rem; text-align: center">Leaderboard</h2>
+
+          <div
+            style="
+              margin-bottom: 1.5rem;
+              display: flex;
+              gap: 1rem;
+              justify-content: center;
+              flex-wrap: wrap;
+            "
+          >
+            <button
+              id="leaderboard-period-daily"
+              class="secondary"
+              data-period="daily"
+            >
+              Daily
+            </button>
+            <button
+              id="leaderboard-period-weekly"
+              class="secondary"
+              data-period="weekly"
+            >
+              Weekly
+            </button>
+            <button
+              id="leaderboard-period-monthly"
+              class="secondary"
+              data-period="monthly"
+            >
+              Monthly
+            </button>
+            <button
+              id="leaderboard-period-all"
+              class="secondary active"
+              data-period="all"
+            >
+              All Time
+            </button>
+          </div>
+
+          <div
+            id="leaderboard-current-user"
+            style="margin-bottom: 1.5rem"
+          ></div>
+
+          <div style="overflow-x: auto">
+            <table style="width: 100%; border-collapse: collapse">
+              <thead>
+                <tr style="border-bottom: 2px solid rgba(102, 126, 234, 0.3)">
+                  <th style="padding: 0.75rem; text-align: left">Rank</th>
+                  <th style="padding: 0.75rem; text-align: left">Username</th>
+                  <th style="padding: 0.75rem; text-align: right">
+                    Total Wagered
+                  </th>
+                  <th style="padding: 0.75rem; text-align: right">
+                    Games Played
+                  </th>
+                  <th style="padding: 0.75rem; text-align: right">Win Rate</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboard-table-body">
+                <tr>
+                  <td
+                    colspan="5"
+                    style="
+                      padding: 2rem;
+                      text-align: center;
+                      color: var(--text-dim);
+                    "
+                  >
+                    Loading...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
+      <!-- Chat View -->
       <div id="chat-view" class="hidden">
-        <div style="display: grid; grid-template-columns: 250px 1fr; gap: 1.5rem; height: 600px;">
+        <div
+          style="
+            display: grid;
+            grid-template-columns: 250px 1fr;
+            gap: 1.5rem;
+            height: 600px;
+          "
+        >
           <!-- Sidebar with rooms -->
-          <div class="card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column;">
-            <div style="padding: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
-              <h3 style="margin: 0; font-size: 1.1rem;">Rooms</h3>
+          <div
+            class="card"
+            style="
+              padding: 0;
+              overflow: hidden;
+              display: flex;
+              flex-direction: column;
+            "
+          >
+            <div
+              style="
+                padding: 1rem;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+              "
+            >
+              <h3 style="margin: 0; font-size: 1.1rem">Rooms</h3>
             </div>
-            <div id="chat-rooms-list" style="flex: 1; overflow-y: auto; padding: 0.5rem;">
-              <button class="chat-room-btn active" data-room="general" style="width: 100%; padding: 0.75rem; margin-bottom: 0.5rem; text-align: left; background: rgba(102, 126, 234, 0.2); border: 1px solid rgba(102, 126, 234, 0.3); border-radius: 0.5rem; color: white; cursor: pointer;">
+            <div
+              id="chat-rooms-list"
+              style="flex: 1; overflow-y: auto; padding: 0.5rem"
+            >
+              <button
+                class="chat-room-btn active"
+                data-room="general"
+                style="
+                  width: 100%;
+                  padding: 0.75rem;
+                  margin-bottom: 0.5rem;
+                  text-align: left;
+                  background: rgba(102, 126, 234, 0.2);
+                  border: 1px solid rgba(102, 126, 234, 0.3);
+                  border-radius: 0.5rem;
+                  color: white;
+                  cursor: pointer;
+                "
+              >
                 💬 General
               </button>
-              <button class="chat-room-btn" data-room="casino" style="width: 100%; padding: 0.75rem; margin-bottom: 0.5rem; text-align: left; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 0.5rem; color: white; cursor: pointer;">
+              <button
+                class="chat-room-btn"
+                data-room="casino"
+                style="
+                  width: 100%;
+                  padding: 0.75rem;
+                  margin-bottom: 0.5rem;
+                  text-align: left;
+                  background: rgba(255, 255, 255, 0.05);
+                  border: 1px solid rgba(255, 255, 255, 0.1);
+                  border-radius: 0.5rem;
+                  color: white;
+                  cursor: pointer;
+                "
+              >
                 🎰 Casino
               </button>
-              <button class="chat-room-btn" data-room="support" style="width: 100%; padding: 0.75rem; margin-bottom: 0.5rem; text-align: left; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 0.5rem; color: white; cursor: pointer;">
+              <button
+                class="chat-room-btn"
+                data-room="support"
+                style="
+                  width: 100%;
+                  padding: 0.75rem;
+                  margin-bottom: 0.5rem;
+                  text-align: left;
+                  background: rgba(255, 255, 255, 0.05);
+                  border: 1px solid rgba(255, 255, 255, 0.1);
+                  border-radius: 0.5rem;
+                  color: white;
+                  cursor: pointer;
+                "
+              >
                 🆘 Support
               </button>
             </div>
-            <div style="padding: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-              <div style="color: var(--text-dim); font-size: 0.875rem; margin-bottom: 0.5rem;">Current Room:</div>
-              <div id="chat-current-room" style="font-weight: 600;">General</div>
+            <div
+              style="
+                padding: 1rem;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+              "
+            >
+              <div
+                style="
+                  color: var(--text-dim);
+                  font-size: 0.875rem;
+                  margin-bottom: 0.5rem;
+                "
+              >
+                Current Room:
+              </div>
+              <div id="chat-current-room" style="font-weight: 600">General</div>
             </div>
           </div>
 
           <!-- Chat area -->
-          <div class="card" style="padding: 0; display: flex; flex-direction: column;">
-            <div style="padding: 1rem; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
-              <h3 style="margin: 0; font-size: 1.1rem;" id="chat-room-title">General Chat</h3>
+          <div
+            class="card"
+            style="padding: 0; display: flex; flex-direction: column"
+          >
+            <div
+              style="
+                padding: 1rem;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+              "
+            >
+              <h3 style="margin: 0; font-size: 1.1rem" id="chat-room-title">
+                General Chat
+              </h3>
             </div>
-            <div id="chat-messages" style="flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
-              <div style="text-align: center; color: var(--text-dim); font-size: 0.875rem; padding: 1rem;">
+            <div
+              id="chat-messages"
+              style="
+                flex: 1;
+                overflow-y: auto;
+                padding: 1rem;
+                display: flex;
+                flex-direction: column;
+                gap: 0.75rem;
+              "
+            >
+              <div
+                style="
+                  text-align: center;
+                  color: var(--text-dim);
+                  font-size: 0.875rem;
+                  padding: 1rem;
+                "
+              >
                 No messages yet. Start the conversation!
               </div>
             </div>
-            <div style="padding: 1rem; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-              <div style="display: flex; gap: 0.5rem;">
+            <div
+              style="
+                padding: 1rem;
+                border-top: 1px solid rgba(255, 255, 255, 0.1);
+              "
+            >
+              <div style="display: flex; gap: 0.5rem">
                 <input
                   type="text"
                   id="chat-message-input"
@@ -863,7 +1063,11 @@
                   id="chat-send-btn"
                   style="
                     padding: 0.75rem 1.5rem;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    background: linear-gradient(
+                      135deg,
+                      #667eea 0%,
+                      #764ba2 100%
+                    );
                     border: none;
                     border-radius: 0.5rem;
                     color: white;
@@ -875,6 +1079,152 @@
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Audit Logs View -->
+      <div id="audit-view" class="hidden">
+        <div class="card">
+          <h2 style="margin-bottom: 1.5rem">Audit Logs</h2>
+
+          <div
+            style="
+              margin-bottom: 1rem;
+              display: flex;
+              gap: 1rem;
+              flex-wrap: wrap;
+            "
+          >
+            <select
+              id="audit-filter-type"
+              style="
+                padding: 0.5rem;
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                color: white;
+                border-radius: 0.5rem;
+              "
+            >
+              <option value="">All Types</option>
+              <option value="User">User</option>
+              <option value="MinesGame">MinesGame</option>
+              <option value="PlinkoDrop">PlinkoDrop</option>
+              <option value="CaseOpening">CaseOpening</option>
+              <option value="BonusClaim">BonusClaim</option>
+              <option value="LeaderboardStats">LeaderboardStats</option>
+            </select>
+            <input
+              type="number"
+              id="audit-filter-limit"
+              placeholder="Limit (max 100)"
+              value="50"
+              min="1"
+              max="100"
+              style="
+                padding: 0.5rem;
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                color: white;
+                border-radius: 0.5rem;
+                width: 150px;
+              "
+            />
+            <button
+              id="audit-refresh-btn"
+              class="secondary"
+              style="padding: 0.5rem 1rem"
+            >
+              🔄 Refresh
+            </button>
+          </div>
+
+          <div
+            id="audit-loading"
+            style="text-align: center; padding: 2rem; color: var(--text-dim)"
+          >
+            Loading...
+          </div>
+
+          <div
+            id="audit-error"
+            class="hidden"
+            style="text-align: center; padding: 2rem; color: #ff4444"
+          ></div>
+
+          <div
+            id="audit-stats"
+            style="
+              margin-bottom: 1rem;
+              padding: 1rem;
+              background: rgba(255, 255, 255, 0.05);
+              border-radius: 0.5rem;
+            "
+          >
+            <div style="display: flex; gap: 2rem; flex-wrap: wrap">
+              <div>
+                <div style="color: var(--text-dim); font-size: 0.875rem">
+                  Total Logs
+                </div>
+                <div
+                  id="audit-total"
+                  style="font-size: 1.25rem; font-weight: 600"
+                >
+                  -
+                </div>
+              </div>
+              <div>
+                <div style="color: var(--text-dim); font-size: 0.875rem">
+                  Showing
+                </div>
+                <div
+                  id="audit-showing"
+                  style="font-size: 1.25rem; font-weight: 600"
+                >
+                  -
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="padding: 0; overflow-x: auto">
+            <table
+              style="
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 0.875rem;
+              "
+            >
+              <thead
+                style="
+                  background-color: rgba(255, 255, 255, 0.05);
+                  color: var(--text-dim);
+                "
+              >
+                <tr>
+                  <th style="padding: 0.75rem; text-align: left">Time</th>
+                  <th style="padding: 0.75rem; text-align: left">Action</th>
+                  <th style="padding: 0.75rem; text-align: left">Type</th>
+                  <th style="padding: 0.75rem; text-align: left">User</th>
+                  <th style="padding: 0.75rem; text-align: left">IP</th>
+                  <th style="padding: 0.75rem; text-align: left">Details</th>
+                </tr>
+              </thead>
+              <tbody id="audit-logs-table">
+                <tr>
+                  <td
+                    colspan="6"
+                    style="
+                      padding: 2rem;
+                      text-align: center;
+                      color: var(--text-dim);
+                    "
+                  >
+                    No logs found
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -890,7 +1240,7 @@
     <script src="js/leaderboard.js"></script>
     <script src="js/chat.js"></script>
     <script src="js/audit.js"></script>
-    
+
     <!-- Modal Dialog -->
   </body>
 </html>
