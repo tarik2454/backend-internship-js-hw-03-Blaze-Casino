@@ -3,11 +3,12 @@
   "version": "0.0.0",
   "private": true,
   "engines": {
-    "node": "24.x"
+    "node": ">=18"
   },
   "scripts": {
     "build": "tsc",
     "start": "cross-env NODE_ENV=production node ./dist/index.js",
+    "postinstall": "npm run build",
     "dev": "cross-env NODE_ENV=development nodemon --watch \"src/**/*.ts\" --exec \"ts-node\" src/index.ts",
     "lint": "eslint src --ext .ts,.js",
     "lint:fix": "eslint --fix src --ext .ts,.js",
