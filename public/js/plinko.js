@@ -1,4 +1,3 @@
-/* eslint-env browser */
 document.addEventListener("DOMContentLoaded", () => {
   const plinkoTabBtn = document.getElementById("tab-plinko");
   const plinkoContainer = document.getElementById("plinko-view");
@@ -467,7 +466,9 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       if (!window.authenticatedFetch) return;
 
-      const response = await window.authenticatedFetch("/api/plinko/history?limit=10");
+      const response = await window.authenticatedFetch(
+        "/api/plinko/history?limit=10"
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -487,8 +488,7 @@ document.addEventListener("DOMContentLoaded", () => {
           });
         }
       }
-    } catch (error) {
-    }
+    } catch (error) {}
   }
 
   function addHistoryRow(data) {

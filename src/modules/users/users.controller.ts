@@ -9,10 +9,11 @@ const getCurrent = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  const { username, email, balance, totalWagered, gamesPlayed, totalWon } =
+  const { _id, username, email, balance, totalWagered, gamesPlayed, totalWon } =
     req.user;
 
   res.json({
+    _id: _id.toString(),
     username,
     email,
     balance,

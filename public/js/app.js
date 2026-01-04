@@ -1,4 +1,3 @@
-/* eslint-env browser */
 const API_URL = window.API_URL;
 let accessToken = localStorage.getItem("accessToken");
 let refreshToken = localStorage.getItem("refreshToken");
@@ -7,11 +6,6 @@ let currentMinesGameId = null;
 let isRefreshing = false;
 let refreshPromise = null;
 
-/**
- * Escapes HTML special characters to prevent XSS attacks
- * @param {string} text - The text to escape
- * @returns {string} - The escaped text
- */
 function escapeHtml(text) {
   if (typeof text !== "string") {
     return String(text);
@@ -26,7 +20,6 @@ function escapeHtml(text) {
   };
   return text.replace(/[&<>"'/]/g, (char) => map[char]);
 }
-
 
 const authSection = document.getElementById("auth-section");
 const mainSection = document.getElementById("main-section");
@@ -247,7 +240,10 @@ async function loadUser() {
     checkActiveMinesGame();
   } catch (err) {
     showToast("Failed to load user: " + err.message, true);
-    if (err.message.includes("Not authenticated") || err.message.includes("Session expired")) {
+    if (
+      err.message.includes("Not authenticated") ||
+      err.message.includes("Session expired")
+    ) {
       logout();
     }
   }
@@ -259,9 +255,7 @@ async function logout() {
       await authenticatedFetch(`${API_URL}/auth/logout`, {
         method: "POST",
       });
-    } catch (err) {
-      // Ignore errors on logout
-    }
+    } catch (err) {}
   }
 
   accessToken = null;
@@ -372,10 +366,12 @@ function switchTab(tab) {
       tabChat.classList.add("active");
       tabChat.classList.remove("secondary");
       chatView.classList.remove("hidden");
-      // Не устанавливаем display, так как в HTML уже есть inline стиль display: grid
       document.dispatchEvent(new CustomEvent("chat:shown"));
     } else {
-      console.error("Chat tab or view not found:", { tabChat: !!tabChat, chatView: !!chatView });
+      console.error("Chat tab or view not found:", {
+        tabChat: !!tabChat,
+        chatView: !!chatView,
+      });
     }
   } else if (tab === "audit") {
     if (tabAudit) {
@@ -392,7 +388,8 @@ tabMines.addEventListener("click", () => switchTab("mines"));
 if (tabPlinko) tabPlinko.addEventListener("click", () => switchTab("plinko"));
 if (tabCrash) tabCrash.addEventListener("click", () => switchTab("crash"));
 if (tabBonus) tabBonus.addEventListener("click", () => switchTab("bonus"));
-if (tabLeaderboard) tabLeaderboard.addEventListener("click", () => switchTab("leaderboard"));
+if (tabLeaderboard)
+  tabLeaderboard.addEventListener("click", () => switchTab("leaderboard"));
 if (tabChat) tabChat.addEventListener("click", () => switchTab("chat"));
 if (tabAudit) tabAudit.addEventListener("click", () => switchTab("audit"));
 
@@ -490,8 +487,7 @@ async function checkActiveMinesGame() {
       renderMinesGrid();
       updateMinesControls(false);
     }
-  } catch (err) {
-  }
+  } catch (err) {}
 }
 
 async function startMinesGame() {
@@ -666,8 +662,7 @@ async function loadMinesHistory() {
     const res = await authenticatedFetch(`${API_URL}/mines/history?limit=10`);
     const data = await res.json();
     renderMinesHistory(data.games);
-  } catch (err) {
-  }
+  } catch (err) {}
 }
 
 function renderMinesHistory(games) {
@@ -746,13 +741,12 @@ async function loadCasesHistory() {
     const res = await authenticatedFetch(`${API_URL}/cases/history?limit=10`);
     const data = await res.json();
     renderCasesHistory(data.openings);
-  } catch (err) {
-  }
+  } catch (err) {}
 }
 
 function renderCasesHistory(openings) {
   if (!casesHistoryTable) return;
-  
+
   if (!openings || openings.length === 0) {
     casesHistoryTable.innerHTML =
       '<tr><td colspan="6" style="text-align: center; padding: 1rem; color: var(--text-dim);">No history yet</td></tr>';
@@ -774,9 +768,13 @@ function renderCasesHistory(openings) {
         <td style="padding: 0.75rem 1rem; color: var(--text-dim); font-size: 0.875rem;">${date}</td>
         <td style="padding: 0.75rem 1rem;">${escapeHtml(opening.caseName)}</td>
         <td style="padding: 0.75rem 1rem;">${escapeHtml(opening.itemName)}</td>
-        <td style="padding: 0.75rem 1rem; text-transform: capitalize;">${escapeHtml(opening.itemRarity)}</td>
+        <td style="padding: 0.75rem 1rem; text-transform: capitalize;">${escapeHtml(
+          opening.itemRarity
+        )}</td>
         <td style="padding: 0.75rem 1rem;">$${opening.itemValue.toFixed(2)}</td>
-        <td style="padding: 0.75rem 1rem; font-weight: 600; ${profitClass}">${profitSign}$${profit.toFixed(2)}</td>
+        <td style="padding: 0.75rem 1rem; font-weight: 600; ${profitClass}">${profitSign}$${profit.toFixed(
+        2
+      )}</td>
       </tr>
     `;
     })
@@ -1068,7 +1066,6 @@ document.getElementById("auth-submit").addEventListener("click", (e) => {
 
 logoutBtn.addEventListener("click", () => logout());
 
-// Export getAccessToken for use in other scripts
 window.getAccessToken = getAccessToken;
 window.authenticatedFetch = authenticatedFetch;
 
