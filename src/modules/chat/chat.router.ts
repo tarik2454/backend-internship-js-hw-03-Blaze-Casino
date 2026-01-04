@@ -8,7 +8,6 @@ import {
 
 const chatRouter = express.Router();
 
-// GET /api/chat/:roomId/history - return last 100 messages for room
 chatRouter.get(
   "/:roomId/history",
   authenticate,
