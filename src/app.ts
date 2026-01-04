@@ -11,6 +11,7 @@ import { plinkoRouter } from "./modules/plinko/plinko.router";
 import { loginLimiter, registerLimiter } from "./middlewares";
 import { claimBonusRouter } from "./modules/bonus/bonus.router";
 import { leaderboardRouter } from "./modules/leaderboard/leaderboard.router";
+import { chatRouter } from "./modules/chat/chat.router";
 import { auditRouter } from "./modules/audit/audit.router";
 import { crashRouter } from "./modules/crash/crash.router";
 
@@ -42,6 +43,7 @@ app.use("/api/plinko", plinkoRouter);
 app.use("/api/bonus", claimBonusRouter);
 app.use("/api/leaderboard", leaderboardRouter);
 app.use("/api/crash", crashRouter);
+app.use("/api/chat", chatRouter);
 app.use("/api/audit", auditRouter);
 
 app.use((_req: Request, res: Response) => {

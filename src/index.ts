@@ -22,7 +22,6 @@ mongoose
     console.warn("Database connection error:", error.message);
   });
 
-// HTTP сервер и Socket.io сервер
 const httpServer = createServer(app);
 const io = new SocketIOServer(httpServer, {
   cors: {
@@ -39,5 +38,3 @@ httpServer.listen(PORT, () => {
   console.log(`WebSocket server ready on /crash namespace`);
   console.log(`WebSocket server ready on / namespace (chat)`);
 });
-
-export default app;
