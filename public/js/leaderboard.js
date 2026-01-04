@@ -1,4 +1,3 @@
-/* eslint-env browser */
 const getLeaderboardApiUrl = () => {
   if (typeof window !== "undefined" && window.API_URL) {
     return window.API_URL;
@@ -210,9 +209,7 @@ document.addEventListener("leaderboard:shown", () => {
   }, 100);
 });
 
-document.addEventListener("leaderboard:hidden", () => {
-  // Leaderboard hidden - no action needed
-});
+document.addEventListener("leaderboard:hidden", () => {});
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {

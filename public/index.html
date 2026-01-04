@@ -111,7 +111,6 @@
         </div>
       </div>
 
-      <!-- Plinko View -->
       <div id="plinko-view" class="hidden">
         <div
           style="
@@ -121,7 +120,6 @@
             align-items: start;
           "
         >
-          <!-- Game Area -->
           <div
             class="card"
             style="
@@ -139,7 +137,6 @@
             ></canvas>
           </div>
 
-          <!-- Controls -->
           <div class="card">
             <h2 style="margin-bottom: 0.75rem; font-size: 1.1rem">
               Plinko Configuration
@@ -423,7 +420,6 @@
         </div>
       </div>
 
-      <!-- Crash View -->
       <div id="crash-view" class="hidden">
         <div
           style="
@@ -433,7 +429,6 @@
             align-items: start;
           "
         >
-          <!-- Game Area -->
           <div class="card" style="min-height: 400px; position: relative">
             <div
               id="crash-multiplier"
@@ -471,7 +466,6 @@
             ></canvas>
           </div>
 
-          <!-- Control Panel -->
           <div class="card">
             <h2 style="margin-bottom: 1rem">Crash Configuration</h2>
 
@@ -608,7 +602,6 @@
           </div>
         </div>
 
-        <!-- History -->
         <div style="margin-top: 2rem">
           <h2 style="margin-bottom: 1rem">Game History</h2>
           <div class="card" style="padding: 0; overflow: hidden">
@@ -636,7 +629,6 @@
         </div>
       </div>
 
-      <!-- Bonus View -->
       <div id="bonus-view" class="hidden">
         <div class="card" style="max-width: 600px; margin: 0 auto">
           <h2 style="margin-bottom: 1.5rem; text-align: center">
@@ -815,7 +807,6 @@
         </div>
       </div>
 
-      <!-- Leaderboard View -->
       <div id="leaderboard-view" class="hidden">
         <div class="card">
           <h2 style="margin-bottom: 1.5rem; text-align: center">Leaderboard</h2>
@@ -898,7 +889,6 @@
         </div>
       </div>
 
-      <!-- Chat View -->
       <div id="chat-view" class="hidden">
         <div
           style="
@@ -908,7 +898,6 @@
             height: 600px;
           "
         >
-          <!-- Sidebar with rooms -->
           <div
             class="card"
             style="
@@ -929,59 +918,7 @@
             <div
               id="chat-rooms-list"
               style="flex: 1; overflow-y: auto; padding: 0.5rem"
-            >
-              <button
-                class="chat-room-btn active"
-                data-room="general"
-                style="
-                  width: 100%;
-                  padding: 0.75rem;
-                  margin-bottom: 0.5rem;
-                  text-align: left;
-                  background: rgba(102, 126, 234, 0.2);
-                  border: 1px solid rgba(102, 126, 234, 0.3);
-                  border-radius: 0.5rem;
-                  color: white;
-                  cursor: pointer;
-                "
-              >
-                💬 General
-              </button>
-              <button
-                class="chat-room-btn"
-                data-room="casino"
-                style="
-                  width: 100%;
-                  padding: 0.75rem;
-                  margin-bottom: 0.5rem;
-                  text-align: left;
-                  background: rgba(255, 255, 255, 0.05);
-                  border: 1px solid rgba(255, 255, 255, 0.1);
-                  border-radius: 0.5rem;
-                  color: white;
-                  cursor: pointer;
-                "
-              >
-                🎰 Casino
-              </button>
-              <button
-                class="chat-room-btn"
-                data-room="support"
-                style="
-                  width: 100%;
-                  padding: 0.75rem;
-                  margin-bottom: 0.5rem;
-                  text-align: left;
-                  background: rgba(255, 255, 255, 0.05);
-                  border: 1px solid rgba(255, 255, 255, 0.1);
-                  border-radius: 0.5rem;
-                  color: white;
-                  cursor: pointer;
-                "
-              >
-                🆘 Support
-              </button>
-            </div>
+            ></div>
             <div
               style="
                 padding: 1rem;
@@ -1001,7 +938,6 @@
             </div>
           </div>
 
-          <!-- Chat area -->
           <div
             class="card"
             style="padding: 0; display: flex; flex-direction: column"
@@ -1083,7 +1019,6 @@
         </div>
       </div>
 
-      <!-- Audit Logs View -->
       <div id="audit-view" class="hidden">
         <div class="card">
           <h2 style="margin-bottom: 1.5rem">Audit Logs</h2>
@@ -1240,7 +1175,5 @@
     <script src="js/leaderboard.js"></script>
     <script src="js/chat.js"></script>
     <script src="js/audit.js"></script>
-
-    <!-- Modal Dialog -->
   </body>
 </html>

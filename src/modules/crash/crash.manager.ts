@@ -1,7 +1,7 @@
 import { Crash } from "./models/crash/crash.model";
 import { CrashBet } from "./models/crash-bets/crash-bets.model";
 import { ICrashBet } from "./models/crash-bets/crash-bets.types";
-import crashWebSocketHandler from "./crash.ws.handler";
+import { emitGameTick, emitGameCrash } from "./ws/crash.ws.handler";
 import {
   generateServerSeed,
   hashServerSeed,
@@ -137,11 +137,7 @@ class CrashManager {
         return;
       }
 
-      crashWebSocketHandler.emitGameTick(
-        gameId,
-        currentState.multiplier,
-        elapsed
-      );
+      emitGameTick(gameId, currentState.multiplier, elapsed);
       await this.checkAutoCashout(gameId);
 
       currentState.tickInterval = setTimeout(tickFn, this.TICK_RATE);
@@ -268,7 +264,7 @@ class CrashManager {
         });
     }
 
-    crashWebSocketHandler.emitGameCrash(
+    emitGameCrash(
       gameId,
       gameState.crashPoint,
       game.serverSeed,
@@ -309,7 +305,7 @@ class CrashManager {
 
     const game = await Crash.findById(gameId);
     if (game) {
-      crashWebSocketHandler.emitGameCrash(
+      emitGameCrash(
         gameId,
         gameState.crashPoint || 1.0,
         game.serverSeed,

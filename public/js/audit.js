@@ -1,4 +1,3 @@
-/* eslint-env browser */
 const currentAuditFilters = {
   entityType: "",
   limit: 50,

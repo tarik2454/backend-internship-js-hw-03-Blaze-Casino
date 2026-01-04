@@ -1,11 +1,17 @@
-/* eslint-env browser */
-/* global io */
 let chatSocket = null;
 let currentRoom = "general";
 const messagesByRoom = {};
 
 function escapeHtml(text) {
   if (typeof text !== "string") {
+    if (text === null || text === undefined) {
+      return "";
+    }
+    if (typeof text === "object") {
+      if (text.text) return escapeHtml(text.text);
+      if (text.message) return escapeHtml(text.message);
+      return "";
+    }
     return String(text);
   }
   const map = {
@@ -22,7 +28,18 @@ function escapeHtml(text) {
 function initChat() {
   if (chatSocket && chatSocket.connected) return;
 
-  chatSocket = io();
+  const accessToken = localStorage.getItem("accessToken");
+
+  if (!accessToken) {
+    console.error("[Chat] No access token available");
+    return;
+  }
+
+  chatSocket = io({
+    auth: {
+      token: accessToken,
+    },
+  });
 
   if (typeof window !== "undefined") {
     window.chatSocket = chatSocket;
@@ -32,17 +49,75 @@ function initChat() {
     joinRoom(currentRoom);
   });
 
+  chatSocket.on("chat:error", (data) => {
+    console.error("[Chat] Error:", data.message);
+    if (
+      data.message === "Authentication token required" ||
+      data.message === "Invalid authentication token" ||
+      data.message === "User not found"
+    ) {
+      if (typeof showToast === "function") {
+        showToast("Authentication failed. Please login again.", true);
+      }
+    }
+  });
+
+  chatSocket.on("chat:rooms", (rooms) => {
+    renderRooms(rooms);
+  });
+
   chatSocket.on("message", (data) => {
     const roomId = data.roomId || "general";
-    addMessageToRoom(roomId, data);
+
+    const messageData = {
+      _id: data._id,
+      username: data.username || "Anonymous",
+      text: data.text || data.message || "",
+      time: data.time || new Date().toLocaleTimeString(),
+      roomId: roomId,
+      userId: data.userId || null,
+      timestamp: data.timestamp || new Date().toISOString(),
+    };
+
+    console.log("[Chat] Message received:", {
+      roomId: messageData.roomId,
+      username: messageData.username,
+      messageUserId: messageData.userId,
+      currentUser: window.currentUser,
+      currentUserId: window.currentUser?._id,
+      currentUserKeys: window.currentUser
+        ? Object.keys(window.currentUser)
+        : [],
+    });
+
+    addMessageToRoom(roomId, messageData);
     if (roomId === currentRoom) {
       renderMessages(roomId);
     }
   });
 
-  chatSocket.on("disconnect", () => {
-    // Socket disconnected
+  // История комнаты, отправляется сервером при join
+  chatSocket.on("chat:history", (data) => {
+    if (!data || !data.roomId || !Array.isArray(data.messages)) return;
+    data.messages.forEach((msg) => {
+      addMessageToRoom(data.roomId, {
+        _id: msg._id,
+        username: msg.username || "Anonymous",
+        text: msg.text || "",
+        time:
+          msg.time ||
+          (msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString() : ""),
+        roomId: data.roomId,
+        userId: msg.userId || null,
+        timestamp: msg.createdAt || new Date().toISOString(),
+      });
+    });
+    if (data.roomId === currentRoom) {
+      renderMessages(data.roomId);
+    }
   });
+
+  chatSocket.on("disconnect", () => {});
 }
 
 function joinRoom(roomId) {
@@ -63,6 +138,110 @@ function joinRoom(roomId) {
   renderMessages(roomId);
 }
 
+function renderRooms(rooms) {
+  const roomsList = document.getElementById("chat-rooms-list");
+  if (!roomsList || !rooms) return;
+
+  roomsList.innerHTML = rooms
+    .map((room) => {
+      const isActive = room.id === currentRoom;
+      const roomIcons = {
+        general: "💬",
+        crash: "🚀",
+      };
+      return `
+        <button
+          class="chat-room-btn ${isActive ? "active" : ""}"
+          data-room="${room.id}"
+          style="
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            text-align: left;
+            background: ${
+              isActive
+                ? "rgba(102, 126, 234, 0.2)"
+                : "rgba(255, 255, 255, 0.05)"
+            };
+            border: 1px solid ${
+              isActive ? "rgba(102, 126, 234, 0.3)" : "rgba(255, 255, 255, 0.1)"
+            };
+            border-radius: 0.5rem;
+            color: white;
+            cursor: pointer;
+          "
+        >
+          ${roomIcons[room.id] || "💬"} ${room.name}
+        </button>
+      `;
+    })
+    .join("");
+
+  // Добавляем обработчики событий для кнопок
+  const roomButtons = roomsList.querySelectorAll(".chat-room-btn");
+  roomButtons.forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const roomId = btn.getAttribute("data-room");
+      if (roomId) {
+        joinRoom(roomId);
+      }
+    });
+  });
+}
+
+function renderRooms(rooms) {
+  const roomsList = document.getElementById("chat-rooms-list");
+  if (!roomsList || !rooms) return;
+
+  roomsList.innerHTML = rooms
+    .map((room) => {
+      const isActive = room.id === currentRoom;
+      const roomIcons = {
+        general: "💬",
+        crash: "🚀",
+      };
+      return `
+        <button
+          class="chat-room-btn ${isActive ? "active" : ""}"
+          data-room="${room.id}"
+          style="
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            text-align: left;
+            background: ${
+              isActive
+                ? "rgba(102, 126, 234, 0.2)"
+                : "rgba(255, 255, 255, 0.05)"
+            };
+            border: 1px solid ${
+              isActive ? "rgba(102, 126, 234, 0.3)" : "rgba(255, 255, 255, 0.1)"
+            };
+            border-radius: 0.5rem;
+            color: white;
+            cursor: pointer;
+          "
+        >
+          ${roomIcons[room.id] || "💬"} ${room.name}
+        </button>
+      `;
+    })
+    .join("");
+
+  // Добавляем обработчики событий для кнопок
+  const roomButtons = roomsList.querySelectorAll(".chat-room-btn");
+  roomButtons.forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      const roomId = btn.getAttribute("data-room");
+      if (roomId) {
+        joinRoom(roomId);
+      }
+    });
+  });
+}
+
 function updateRoomUI(roomId) {
   const roomTitle = document.getElementById("chat-room-title");
   const currentRoomEl = document.getElementById("chat-current-room");
@@ -71,8 +250,7 @@ function updateRoomUI(roomId) {
   if (roomTitle) {
     const roomNames = {
       general: "General Chat",
-      casino: "Casino Chat",
-      support: "Support Chat",
+      crash: "Crash Chat",
     };
     roomTitle.textContent = roomNames[roomId] || `${roomId} Chat`;
   }
@@ -100,7 +278,24 @@ function addMessageToRoom(roomId, messageData) {
   if (!messagesByRoom[roomId]) {
     messagesByRoom[roomId] = [];
   }
-  messagesByRoom[roomId].push(messageData);
+
+  const exists = messagesByRoom[roomId].some((m) => {
+    if (m._id && messageData._id) return m._id === messageData._id;
+    return (
+      m.timestamp === messageData.timestamp &&
+      m.username === messageData.username &&
+      m.text === messageData.text
+    );
+  });
+
+  if (!exists) {
+    messagesByRoom[roomId].push(messageData);
+    // keep chronological order
+    messagesByRoom[roomId].sort(
+      (a, b) =>
+        new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+  }
 
   if (roomId === currentRoom) {
     renderMessages(roomId);
@@ -117,14 +312,13 @@ function renderMessages(roomId) {
   const messages = messagesByRoom[roomId] || [];
 
   if (messages.length === 0) {
-    // Показываем начальное сообщение, если сообщений нет
     const emptyMessage = `
       <div style="text-align: center; color: var(--text-dim); font-size: 0.875rem; padding: 1rem;">
         No messages yet. Start the conversation!
       </div>
     `;
     messagesContainer.innerHTML = emptyMessage;
-    // Убедиться, что контейнер видим
+
     messagesContainer.style.display = "flex";
     messagesContainer.style.flexDirection = "column";
     messagesContainer.scrollTop = 0;
@@ -133,22 +327,64 @@ function renderMessages(roomId) {
 
   messagesContainer.innerHTML = messages
     .map((msg) => {
-      const isOwnMessage =
-        window.currentUser && msg.userId === window.currentUser._id;
-      const timestamp = msg.timestamp
-        ? new Date(msg.timestamp).toLocaleTimeString()
-        : new Date().toLocaleTimeString();
-      const username = msg.username || "Anonymous";
+      let messageText = "";
+      if (typeof msg === "string") {
+        messageText = msg;
+      } else if (typeof msg === "object" && msg !== null) {
+        messageText = msg.text || msg.message || "";
+        if (typeof messageText === "object") {
+          messageText = JSON.stringify(messageText);
+        }
+      }
+
+      const username = (msg.username || "Anonymous").toString();
+      const timestamp = (
+        msg.time ||
+        (msg.timestamp
+          ? new Date(msg.timestamp).toLocaleTimeString()
+          : new Date().toLocaleTimeString())
+      ).toString();
+
+      let isOwnMessage = false;
+      if (window.currentUser) {
+        const currentUserId = String(
+          window.currentUser._id ||
+            window.currentUser.id ||
+            window.currentUser.userId ||
+            ""
+        ).trim();
+
+        const messageUserId =
+          msg.userId && msg.userId !== "anonymous"
+            ? String(msg.userId).trim()
+            : "";
+
+        if (currentUserId && messageUserId && messageUserId !== "anonymous") {
+          isOwnMessage = currentUserId === messageUserId;
+        }
+
+        console.log("[Chat] Message ownership check:", {
+          currentUser: window.currentUser,
+          currentUserId,
+          messageUserId: msg.userId,
+          normalizedMessageUserId: messageUserId,
+          isOwnMessage,
+          username: msg.username,
+        });
+      }
 
       return `
         <div style="
           display: flex;
-          flex-direction: column;
-          align-items: ${isOwnMessage ? "flex-end" : "flex-start"};
-          margin-bottom: 0.5rem;
+          flex-direction: row;
+          justify-content: ${isOwnMessage ? "flex-end" : "flex-start"};
+          align-items: flex-start;
+          margin-bottom: 0.75rem;
+          width: 100%;
         ">
           <div style="
             max-width: 70%;
+            min-width: 120px;
             padding: 0.75rem 1rem;
             background: ${
               isOwnMessage
@@ -161,6 +397,8 @@ function renderMessages(roomId) {
                 ? "rgba(102, 126, 234, 0.3)"
                 : "rgba(255, 255, 255, 0.1)"
             };
+            display: flex;
+            flex-direction: column;
           ">
             <div style="
               font-size: 0.75rem;
@@ -168,11 +406,12 @@ function renderMessages(roomId) {
                 isOwnMessage ? "rgba(255,255,255,0.8)" : "var(--text-dim)"
               };
               margin-bottom: 0.25rem;
+              font-weight: ${isOwnMessage ? "500" : "400"};
             ">
               ${escapeHtml(username)}
             </div>
-            <div style="color: white; word-wrap: break-word;">
-              ${escapeHtml(msg.message || msg.text || "")}
+            <div style="color: white; word-wrap: break-word; line-height: 1.4;">
+              ${escapeHtml(messageText)}
             </div>
             <div style="
               font-size: 0.7rem;
@@ -180,8 +419,9 @@ function renderMessages(roomId) {
                 isOwnMessage ? "rgba(255,255,255,0.6)" : "var(--text-dim)"
               };
               margin-top: 0.25rem;
+              text-align: ${isOwnMessage ? "right" : "left"};
             ">
-              ${timestamp}
+              ${escapeHtml(timestamp)}
             </div>
           </div>
         </div>
@@ -205,7 +445,20 @@ function sendMessage() {
   const message = input.value.trim();
   const username =
     window.currentUser?.username || window.currentUser?.email || "Anonymous";
-  const userId = window.currentUser?._id || "anonymous";
+  const userId = window.currentUser?._id
+    ? String(window.currentUser._id)
+    : null;
+
+  if (!userId) {
+    console.error("[Chat] Cannot send message: user ID is missing");
+    return;
+  }
+
+  console.log("[Chat] Sending message:", {
+    roomId: currentRoom,
+    username,
+    userId,
+  });
 
   chatSocket.emit("chat:message", {
     roomId: currentRoom,
@@ -218,37 +471,14 @@ function sendMessage() {
 }
 
 function setupChatHandlers() {
-  // Проверить, что chat-view существует
   const chatView = document.getElementById("chat-view");
   if (!chatView) {
     console.error("[Chat] chat-view not found!");
     return;
   }
 
-  // Убедиться, что элемент видим (удалить hidden)
   chatView.classList.remove("hidden");
   // Не устанавливаем display, так как в HTML уже есть inline стиль display: grid
-
-  const roomButtons = document.querySelectorAll(".chat-room-btn");
-  if (roomButtons.length === 0) {
-    console.warn("[Chat] No room buttons found!");
-    return;
-  }
-
-  roomButtons.forEach((btn) => {
-    const newBtn = btn.cloneNode(true);
-    if (btn.parentNode) {
-      btn.parentNode.replaceChild(newBtn, btn);
-    }
-
-    newBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      const roomId = newBtn.getAttribute("data-room");
-      if (roomId) {
-        joinRoom(roomId);
-      }
-    });
-  });
 
   const sendBtn = document.getElementById("chat-send-btn");
   const messageInput = document.getElementById("chat-message-input");
@@ -337,7 +567,6 @@ document.addEventListener("chat:shown", () => {
   }, 100);
 });
 
-// Инициализация при загрузке страницы
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => {
@@ -352,7 +581,6 @@ if (document.readyState === "loading") {
   }, 500);
 }
 
-// Экспорт
 if (typeof window !== "undefined") {
   window.initChat = initChat;
   window.chatSocket = chatSocket;

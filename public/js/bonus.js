@@ -1,5 +1,3 @@
-/* eslint-env browser */
-/* global showToast */
 const getApiUrl = () => {
   if (typeof window !== "undefined" && window.API_URL) {
     return window.API_URL;
