@@ -43,31 +43,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const wsUrl = window.location.origin.replace(/^http/, "ws");
     socket = io(`${wsUrl}/crash`);
 
-    socket.on("connect", () => {
-      console.log("[Crash WS] Client connected:", socket.id);
-    });
+    socket.on("connect", () => {});
 
-    socket.on("disconnect", () => {
-      console.log("[Crash WS] Client disconnected");
-    });
+    socket.on("disconnect", () => {});
 
     socket.on("game:tick", (data) => {
-      if (data.elapsed % 1000 < 100) {
-        console.log(
-          `[Crash WS] Received game:tick - multiplier: ${data.multiplier.toFixed(
-            2
-          )}x, elapsed: ${data.elapsed}ms`
-        );
-      }
       handleGameTick(data);
     });
 
     socket.on("game:crash", (data) => {
-      console.log(
-        `[Crash WS] Received game:crash - crashPoint: ${data.crashPoint.toFixed(
-          2
-        )}x`
-      );
       handleGameCrash(data);
     });
   }
@@ -388,7 +372,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (socket && socket.connected) {
-          console.log("[Crash WS] Emitting bet:place", { amount, autoCashout });
           socket.emit("bet:place", { amount, autoCashout });
         }
 
@@ -460,9 +443,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await response.json();
 
         if (socket && socket.connected) {
-          console.log("[Crash WS] Emitting bet:cashout", {
-            betId: currentBetId,
-          });
           socket.emit("bet:cashout", { betId: currentBetId });
         }
 

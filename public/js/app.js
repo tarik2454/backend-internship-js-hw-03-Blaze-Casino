@@ -367,11 +367,6 @@ function switchTab(tab) {
       tabChat.classList.remove("secondary");
       chatView.classList.remove("hidden");
       document.dispatchEvent(new CustomEvent("chat:shown"));
-    } else {
-      console.error("Chat tab or view not found:", {
-        tabChat: !!tabChat,
-        chatView: !!chatView,
-      });
     }
   } else if (tab === "audit") {
     if (tabAudit) {

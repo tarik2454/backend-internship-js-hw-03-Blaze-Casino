@@ -31,7 +31,6 @@ function initChat() {
   const accessToken = localStorage.getItem("accessToken");
 
   if (!accessToken) {
-    console.error("[Chat] No access token available");
     return;
   }
 
@@ -50,7 +49,6 @@ function initChat() {
   });
 
   chatSocket.on("chat:error", (data) => {
-    console.error("[Chat] Error:", data.message);
     if (
       data.message === "Authentication token required" ||
       data.message === "Invalid authentication token" ||
@@ -79,24 +77,12 @@ function initChat() {
       timestamp: data.timestamp || new Date().toISOString(),
     };
 
-    console.log("[Chat] Message received:", {
-      roomId: messageData.roomId,
-      username: messageData.username,
-      messageUserId: messageData.userId,
-      currentUser: window.currentUser,
-      currentUserId: window.currentUser?._id,
-      currentUserKeys: window.currentUser
-        ? Object.keys(window.currentUser)
-        : [],
-    });
-
     addMessageToRoom(roomId, messageData);
     if (roomId === currentRoom) {
       renderMessages(roomId);
     }
   });
 
-  // История комнаты, отправляется сервером при join
   chatSocket.on("chat:history", (data) => {
     if (!data || !data.roomId || !Array.isArray(data.messages)) return;
     data.messages.forEach((msg) => {
@@ -177,7 +163,6 @@ function renderRooms(rooms) {
     })
     .join("");
 
-  // Добавляем обработчики событий для кнопок
   const roomButtons = roomsList.querySelectorAll(".chat-room-btn");
   roomButtons.forEach((btn) => {
     btn.addEventListener("click", (e) => {
@@ -229,7 +214,6 @@ function renderRooms(rooms) {
     })
     .join("");
 
-  // Добавляем обработчики событий для кнопок
   const roomButtons = roomsList.querySelectorAll(".chat-room-btn");
   roomButtons.forEach((btn) => {
     btn.addEventListener("click", (e) => {
@@ -290,7 +274,6 @@ function addMessageToRoom(roomId, messageData) {
 
   if (!exists) {
     messagesByRoom[roomId].push(messageData);
-    // keep chronological order
     messagesByRoom[roomId].sort(
       (a, b) =>
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
@@ -305,7 +288,6 @@ function addMessageToRoom(roomId, messageData) {
 function renderMessages(roomId) {
   const messagesContainer = document.getElementById("chat-messages");
   if (!messagesContainer) {
-    console.warn("[Chat] chat-messages container not found!");
     return;
   }
 
@@ -362,15 +344,6 @@ function renderMessages(roomId) {
         if (currentUserId && messageUserId && messageUserId !== "anonymous") {
           isOwnMessage = currentUserId === messageUserId;
         }
-
-        console.log("[Chat] Message ownership check:", {
-          currentUser: window.currentUser,
-          currentUserId,
-          messageUserId: msg.userId,
-          normalizedMessageUserId: messageUserId,
-          isOwnMessage,
-          username: msg.username,
-        });
       }
 
       return `
@@ -450,15 +423,8 @@ function sendMessage() {
     : null;
 
   if (!userId) {
-    console.error("[Chat] Cannot send message: user ID is missing");
     return;
   }
-
-  console.log("[Chat] Sending message:", {
-    roomId: currentRoom,
-    username,
-    userId,
-  });
 
   chatSocket.emit("chat:message", {
     roomId: currentRoom,
@@ -473,18 +439,15 @@ function sendMessage() {
 function setupChatHandlers() {
   const chatView = document.getElementById("chat-view");
   if (!chatView) {
-    console.error("[Chat] chat-view not found!");
     return;
   }
 
   chatView.classList.remove("hidden");
-  // Не устанавливаем display, так как в HTML уже есть inline стиль display: grid
 
   const sendBtn = document.getElementById("chat-send-btn");
   const messageInput = document.getElementById("chat-message-input");
 
   if (!sendBtn || !messageInput) {
-    console.warn("[Chat] Send button or input not found!");
     return;
   }
 
@@ -501,49 +464,26 @@ function setupChatHandlers() {
   };
 }
 
-// Инициализация при показе чата
 document.addEventListener("chat:shown", () => {
-  // Проверить, что chat-view видим
   const chatViewEl = document.getElementById("chat-view");
   if (!chatViewEl) {
-    console.error("[Chat] chat-view element not found!");
     return;
   }
 
-  // Убедиться, что класс hidden удален и элемент видим
   chatViewEl.classList.remove("hidden");
-  // Не устанавливаем display, так как в HTML уже есть inline стиль display: grid
 
-  // Небольшая задержка для гарантии, что DOM обновился
   setTimeout(() => {
-    // Проверить, что все элементы доступны
     const messagesContainer = document.getElementById("chat-messages");
     const roomsList = document.getElementById("chat-rooms-list");
     const sendBtn = document.getElementById("chat-send-btn");
     const messageInput = document.getElementById("chat-message-input");
 
-    if (!messagesContainer) {
-      console.error("[Chat] chat-messages not found!");
-    }
-    if (!roomsList) {
-      console.error("[Chat] chat-rooms-list not found!");
-    }
-    if (!sendBtn) {
-      console.error("[Chat] chat-send-btn not found!");
-    }
-    if (!messageInput) {
-      console.error("[Chat] chat-message-input not found!");
-    }
-
-    // Убедиться, что chat-view видим
     if (chatViewEl.classList.contains("hidden")) {
       chatViewEl.classList.remove("hidden");
     }
 
-    // Проверить родительский элемент main-section
     const mainSection = document.getElementById("main-section");
     if (mainSection && mainSection.classList.contains("hidden")) {
-      console.warn("[Chat] main-section is hidden!");
       mainSection.classList.remove("hidden");
     }
 
@@ -558,10 +498,8 @@ document.addEventListener("chat:shown", () => {
     updateRoomUI(currentRoom);
     renderMessages(currentRoom);
 
-    // Финальная проверка видимости
     const computedStyle = window.getComputedStyle(chatViewEl);
     if (computedStyle.display === "none") {
-      console.error("[Chat] chat-view is still hidden after initialization!");
       chatViewEl.style.display = "block";
     }
   }, 100);

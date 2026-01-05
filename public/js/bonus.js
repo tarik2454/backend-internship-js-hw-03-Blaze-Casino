@@ -40,9 +40,6 @@ async function loadBonusStatus(shouldLog = false) {
     bonusStatus = await res.json();
     updateTimer();
     updateBonusStatusDisplay();
-    if (shouldLog) {
-      console.log("BonusStatusResponse:", bonusStatus);
-    }
   } catch (err) {}
 }
 
@@ -155,7 +152,6 @@ const claimBonus = async function () {
     });
 
     const data = await res.json();
-    console.log("Claim response:", data);
 
     if (!res.ok) {
       throw new Error(data.message || "Failed to claim bonus");

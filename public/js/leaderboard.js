@@ -5,11 +5,6 @@ const getLeaderboardApiUrl = () => {
   return "http://localhost:3000/api";
 };
 
-/**
- * Escapes HTML special characters to prevent XSS attacks
- * @param {string} text - The text to escape
- * @returns {string} - The escaped text
- */
 function escapeHtml(text) {
   if (typeof text !== "string") {
     return String(text);

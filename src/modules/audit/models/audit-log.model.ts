@@ -21,6 +21,7 @@ const auditLogSchema = new Schema<IAuditLog>(
         "CLAIM_BONUS",
         "LOGIN",
         "LOGOUT",
+        "REFRESH_TOKEN",
         "REGISTER",
       ],
     },
@@ -66,4 +67,3 @@ export const AuditLog: Model<IAuditLog> = mongoose.model<IAuditLog>(
   "AuditLog",
   auditLogSchema
 );
-
