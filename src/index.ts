@@ -5,7 +5,7 @@ import { Server as SocketIOServer } from "socket.io";
 import { validateEnv } from "./config/env";
 import app from "./app";
 import { initializeCrashHandler } from "./modules/crash/ws/crash.ws.handler";
-import { initializeChatHandler } from "./modules/chat/chat.ws.handler";
+import { initializeChatHandler } from "./modules/chat/ws/chat.ws.handler";
 
 validateEnv();
 

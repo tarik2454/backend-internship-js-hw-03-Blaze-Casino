@@ -1,7 +1,7 @@
 import { Response } from "express";
 import { ctrlWrapper } from "../../decorators";
 import { AuthenticatedRequest } from "../../types";
-import { ChatMessage } from "./models/chat-message.model";
+import chatService from "./chat.service";
 import { CHAT_ROOMS } from "./chat.config";
 
 const getChatHistory = async (
@@ -16,12 +16,8 @@ const getChatHistory = async (
     return;
   }
 
-  const recent = await ChatMessage.find({ roomId })
-    .sort({ createdAt: -1 })
-    .limit(100)
-    .lean();
-
-  res.json({ roomId, messages: recent.reverse() });
+  const messages = await chatService.getHistory(roomId);
+  res.json({ roomId, messages });
 };
 
 export default {

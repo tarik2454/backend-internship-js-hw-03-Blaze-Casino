@@ -1,11 +1,6 @@
 import { Server as SocketIOServer } from "socket.io";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
-import {
-  GameTickEvent,
-  GameCrashEvent,
-  BetPlaceEvent,
-  BetCashoutEvent,
-} from "./crash.ws.types";
+import { GameTickEvent, GameCrashEvent } from "./crash.ws.types";
 
 type SocketIOServerType = SocketIOServer<
   DefaultEventsMap,
@@ -26,14 +21,6 @@ export function initializeCrashHandler(io: SocketIOServerType): void {
 
     socket.on("subscribe:game", (data: { gameId: string }) => {
       socket.join(`game:${data.gameId}`);
-    });
-
-    socket.on("bet:place", async (data: BetPlaceEvent) => {
-      console.log(`[Crash WS] bet:place received from ${socket.id}:`, data);
-    });
-
-    socket.on("bet:cashout", async (data: BetCashoutEvent) => {
-      console.log(`[Crash WS] bet:cashout received from ${socket.id}:`, data);
     });
 
     socket.on("disconnect", () => {

@@ -1,10 +1,14 @@
 import { Server as SocketIOServer, Socket } from "socket.io";
-import { tokenManager } from "../auth/tokens";
-import { formatMessage, saveChatMessageAndTrim } from "./chat.utils";
-import { CHAT_ROOMS, BOT_NAME } from "./chat.config";
-import { IUser } from "../users/models/users.types";
-import { User } from "../users/models/users.model";
-import { ChatMessage } from "./models/chat-message.model";
+import { tokenManager } from "../../auth/tokens";
+import { formatMessage } from "../chat.utils";
+import { CHAT_ROOMS, BOT_NAME } from "../chat.config";
+import { IUser } from "../../users/models/users.types";
+import chatService from "../chat.service";
+import {
+  ChatJoinEvent,
+  ChatLeaveEvent,
+  ChatMessageEvent,
+} from "./chat.ws.types";
 
 interface ExtendedSocket extends Socket {
   data: {
@@ -37,8 +41,8 @@ export function initializeChatHandler(io: SocketIOServer): void {
       // Валидация токена и извлечение userId из payload
       const payload = tokenManager.verifyAccessToken(token);
 
-      // Загрузка полного объекта пользователя из базы данных
-      const user = await User.findById(payload.userId);
+      // Загрузка полного объекта пользователя из базы данных через сервис
+      const user = await chatService.getUser(payload.userId);
 
       if (!user) {
         socket.emit("chat:error", { message: "User not found" });
@@ -61,22 +65,18 @@ export function initializeChatHandler(io: SocketIOServer): void {
         const text = `User ${disconnectedUsername} has left the chat`;
 
         // Сохраняем бот-сообщение в общей комнате (без фейлов)
-        try {
-          await saveChatMessageAndTrim({
-            roomId: "general",
-            username: BOT_NAME,
-            text,
-          });
-        } catch (err) {
-          console.warn("[Chat] Failed to save disconnect message:", err);
-        }
+        await chatService.saveMessage({
+          roomId: "general",
+          username: BOT_NAME,
+          text,
+        });
 
         // Уведомление всех подключенных пользователей о выходе (видно всем)
         io.emit("message", formatMessage(BOT_NAME, text));
       });
 
       // Обработка присоединения к комнате
-      socket.on("chat:join", async (data: { roomId: string }) => {
+      socket.on("chat:join", async (data: ChatJoinEvent) => {
         // Проверка существования комнаты
         const roomExists = CHAT_ROOMS.some((room) => room.id === data.roomId);
         if (!roomExists) {
@@ -101,20 +101,16 @@ export function initializeChatHandler(io: SocketIOServer): void {
           const joinedText = `${socket.data.username} has joined ${roomName}`;
 
           // Сохраняем приветственное и нотификационное сообщения
-          try {
-            await saveChatMessageAndTrim({
-              roomId: data.roomId,
-              username: BOT_NAME,
-              text: welcomeText,
-            });
-            await saveChatMessageAndTrim({
-              roomId: data.roomId,
-              username: BOT_NAME,
-              text: joinedText,
-            });
-          } catch (err) {
-            console.warn("[Chat] Failed to save join messages:", err);
-          }
+          await chatService.saveMessage({
+            roomId: data.roomId,
+            username: BOT_NAME,
+            text: welcomeText,
+          });
+          await chatService.saveMessage({
+            roomId: data.roomId,
+            username: BOT_NAME,
+            text: joinedText,
+          });
 
           // Приветствие — отправляется только текущему пользователю (видно ТОЛЬКО присоединившемуся)
           socket.emit("message", {
@@ -133,64 +129,45 @@ export function initializeChatHandler(io: SocketIOServer): void {
         }
 
         // Отправляем историю комнаты (последние 100 сообщений) только текущему пользователю
-        try {
-          const recent = await ChatMessage.find({ roomId: data.roomId })
-            .sort({ createdAt: -1 })
-            .limit(100)
-            .lean();
-          socket.emit("chat:history", {
-            roomId: data.roomId,
-            messages: recent.reverse(),
-          });
-        } catch (err) {
-          console.warn("[Chat] Failed to load chat history:", err);
-        }
+        const history = await chatService.getHistory(data.roomId);
+        socket.emit("chat:history", {
+          roomId: data.roomId,
+          messages: history,
+        });
       });
 
       // Обработка покидания комнаты
-      socket.on("chat:leave", (data: { roomId: string }) => {
+      socket.on("chat:leave", (data: ChatLeaveEvent) => {
         socket.leave(`room:${data.roomId}`);
       });
 
       // Обработка отправки сообщения в комнату
-      socket.on(
-        "chat:message",
-        async (data: {
-          roomId: string;
-          message: string;
-          username: string;
-          userId: string;
-        }) => {
-          // Проверка существования комнаты
-          const roomExists = CHAT_ROOMS.some((room) => room.id === data.roomId);
-          if (!roomExists) {
-            socket.emit("chat:error", {
-              message: `Room ${data.roomId} does not exist`,
-            });
-            return;
-          }
-
-          // Сохраняем сообщение в базе
-          try {
-            await saveChatMessageAndTrim({
-              roomId: data.roomId,
-              userId: data.userId,
-              username: data.username,
-              text: data.message,
-            });
-          } catch (err) {
-            console.warn("[Chat] Failed to save message:", err);
-          }
-
-          // Отправка сообщения всем пользователям в комнате, включая отправителя
-          // (публичное сообщение в комнате — видят все участники комнаты, включая отправителя)
-          io.to(`room:${data.roomId}`).emit("message", {
-            roomId: data.roomId,
-            userId: data.userId,
-            ...formatMessage(data.username, data.message),
+      socket.on("chat:message", async (data: ChatMessageEvent) => {
+        // Проверка существования комнаты
+        const roomExists = CHAT_ROOMS.some((room) => room.id === data.roomId);
+        if (!roomExists) {
+          socket.emit("chat:error", {
+            message: `Room ${data.roomId} does not exist`,
           });
+          return;
         }
-      );
+
+        // Сохраняем сообщение в базе
+        await chatService.saveMessage({
+          roomId: data.roomId,
+          userId: data.userId,
+          username: data.username,
+          text: data.message,
+        });
+
+        // Отправка сообщения всем пользователям в комнате, включая отправителя
+        // (публичное сообщение в комнате — видят все участники комнаты, включая отправителя)
+        io.to(`room:${data.roomId}`).emit("message", {
+          roomId: data.roomId,
+          userId: data.userId,
+          ...formatMessage(data.username, data.message),
+        });
+      });
     } catch (error) {
       socket.emit("chat:error", { message: "Invalid authentication token" });
       socket.disconnect();
