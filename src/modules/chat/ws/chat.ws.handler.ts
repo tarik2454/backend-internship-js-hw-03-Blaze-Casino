@@ -76,6 +76,7 @@ export function initializeChatHandler(io: SocketIOServer): void {
         const room = CHAT_ROOMS.find((r) => r.id === data.roomId);
         const roomName = room?.name || data.roomId;
 
+        
         // Отправляем уведомление ТОЛЬКО если это первое подключение к этой комнате
         if (!socket.data.joinedRooms?.has(data.roomId)) {
           const joinedText = `${socket.data.username} has joined ${roomName}`;
