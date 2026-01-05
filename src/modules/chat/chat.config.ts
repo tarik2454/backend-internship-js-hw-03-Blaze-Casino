@@ -8,4 +8,4 @@ export const CHAT_ROOMS: ChatRoom[] = [
   { id: "crash", name: "Crash Chat" },
 ];
 
-export const BOT_NAME = "ChatCord Bot";
+export const BOT_NAME = "Chat Bot";

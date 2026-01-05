@@ -1,10 +1,18 @@
-import moment from "moment";
 import { Types } from "mongoose";
 import { ChatMessage } from "./models/chat-message.model";
 
+function formatTime(date: Date): string {
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date);
+}
+
 export function formatMessage(
   username: string,
-  text: string
+  text: string,
+  createdAt?: Date
 ): {
   username: string;
   text: string;
@@ -13,7 +21,7 @@ export function formatMessage(
   return {
     username,
     text,
-    time: moment().format("h:mm a"),
+    time: formatTime(createdAt || new Date()),
   };
 }
 

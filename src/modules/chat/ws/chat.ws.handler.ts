@@ -59,22 +59,6 @@ export function initializeChatHandler(io: SocketIOServer): void {
       // Отправка списка доступных комнат новому клиенту
       socket.emit("chat:rooms", CHAT_ROOMS);
 
-      // Обработка отключения клиента
-      socket.on("disconnect", async () => {
-        const disconnectedUsername = socket.data.username || "Anonymous";
-        const text = `User ${disconnectedUsername} has left the chat`;
-
-        // Сохраняем бот-сообщение в общей комнате (без фейлов)
-        await chatService.saveMessage({
-          roomId: "general",
-          username: BOT_NAME,
-          text,
-        });
-
-        // Уведомление всех подключенных пользователей о выходе (видно всем)
-        io.emit("message", formatMessage(BOT_NAME, text));
-      });
-
       // Обработка присоединения к комнате
       socket.on("chat:join", async (data: ChatJoinEvent) => {
         // Проверка существования комнаты
@@ -86,58 +70,104 @@ export function initializeChatHandler(io: SocketIOServer): void {
           return;
         }
 
-        // Проверка, является ли это первым присоединением к комнате
-        const isFirstJoin = !socket.data.joinedRooms?.has(data.roomId);
-
         // Присоединение сокета к комнате
         socket.join(`room:${data.roomId}`);
 
         const room = CHAT_ROOMS.find((r) => r.id === data.roomId);
         const roomName = room?.name || data.roomId;
 
-        // Отправка приветственного сообщения только при первом присоединении
-        if (isFirstJoin) {
-          const welcomeText = `Welcome ${socket.data.username} to ${roomName}!`;
+        // Отправляем уведомление ТОЛЬКО если это первое подключение к этой комнате
+        if (!socket.data.joinedRooms?.has(data.roomId)) {
           const joinedText = `${socket.data.username} has joined ${roomName}`;
 
-          // Сохраняем приветственное и нотификационное сообщения
-          await chatService.saveMessage({
-            roomId: data.roomId,
-            username: BOT_NAME,
-            text: welcomeText,
-          });
-          await chatService.saveMessage({
+          // Сохраняем уведомление о входе
+          const savedJoinMessage = await chatService.saveMessage({
             roomId: data.roomId,
             username: BOT_NAME,
             text: joinedText,
           });
 
-          // Приветствие — отправляется только текущему пользователю (видно ТОЛЬКО присоединившемуся)
-          socket.emit("message", {
-            roomId: data.roomId,
-            ...formatMessage(BOT_NAME, welcomeText),
-          });
-
-          // Уведомление об новом участнике — отправляется всем в комнате, КРОМЕ присоединившегося
-          // (видно другим участникам комнаты, но не видно тому, кто только что присоединился)
+          // Уведомление о новом участнике — отправляется всем в комнате, КРОМЕ присоединившегося
+          // (присоединившийся не увидит это сообщение ни в реальном времени, ни в истории)
           socket.broadcast.to(`room:${data.roomId}`).emit("message", {
+            _id: savedJoinMessage?._id?.toString(),
             roomId: data.roomId,
-            ...formatMessage(BOT_NAME, joinedText),
+            ...formatMessage(BOT_NAME, joinedText, savedJoinMessage?.createdAt),
+            createdAt: savedJoinMessage?.createdAt,
           });
 
           socket.data.joinedRooms?.add(data.roomId);
         }
 
         // Отправляем историю комнаты (последние 100 сообщений) только текущему пользователю
+        // Исключаем сообщения о присоединении/выходе самого пользователя
         const history = await chatService.getHistory(data.roomId);
+        const filteredHistory = history
+          .filter((msg) => {
+            // Пропускаем сообщения от бота о присоединении/выходе текущего пользователя
+            if (msg.username === BOT_NAME && socket.data.username) {
+              const userJoinedPattern = new RegExp(
+                `^${socket.data.username} has joined`,
+                "i"
+              );
+              const userLeftPattern = new RegExp(
+                `^${socket.data.username} has left`,
+                "i"
+              );
+              if (
+                userJoinedPattern.test(msg.text) ||
+                userLeftPattern.test(msg.text)
+              ) {
+                return false;
+              }
+            }
+            return true;
+          })
+          .map((msg) => {
+            // Форматируем сообщения из истории в том же формате, что и новые сообщения
+            return {
+              _id: msg._id?.toString(),
+              username: msg.username,
+              text: msg.text,
+              userId: msg.userId?.toString(),
+              time: formatMessage(msg.username, msg.text, msg.createdAt).time,
+              createdAt: msg.createdAt,
+            };
+          });
         socket.emit("chat:history", {
           roomId: data.roomId,
-          messages: history,
+          messages: filteredHistory,
         });
       });
 
       // Обработка покидания комнаты
-      socket.on("chat:leave", (data: ChatLeaveEvent) => {
+      socket.on("chat:leave", async (data: ChatLeaveEvent) => {
+        // Если пользователь действительно был в комнате
+        if (socket.data.joinedRooms?.has(data.roomId)) {
+          const room = CHAT_ROOMS.find((r) => r.id === data.roomId);
+          const roomName = room?.name || data.roomId;
+          const leftText = `${socket.data.username} has left ${roomName}`;
+
+          // Сохраняем уведомление о выходе
+          const savedLeaveMessage = await chatService.saveMessage({
+            roomId: data.roomId,
+            username: BOT_NAME,
+            text: leftText,
+          });
+
+          // Уведомляем остальных участников комнаты о выходе пользователя
+          // (покинувший не увидит это сообщение ни в реальном времени, ни в истории)
+          socket.broadcast.to(`room:${data.roomId}`).emit("message", {
+            _id: savedLeaveMessage?._id?.toString(),
+            roomId: data.roomId,
+            ...formatMessage(BOT_NAME, leftText, savedLeaveMessage?.createdAt),
+            createdAt: savedLeaveMessage?.createdAt,
+          });
+
+          // Удаляем комнату из списка посещенных
+          socket.data.joinedRooms.delete(data.roomId);
+        }
+
         socket.leave(`room:${data.roomId}`);
       });
 
@@ -153,7 +183,7 @@ export function initializeChatHandler(io: SocketIOServer): void {
         }
 
         // Сохраняем сообщение в базе
-        await chatService.saveMessage({
+        const savedMessage = await chatService.saveMessage({
           roomId: data.roomId,
           userId: data.userId,
           username: data.username,
@@ -163,9 +193,15 @@ export function initializeChatHandler(io: SocketIOServer): void {
         // Отправка сообщения всем пользователям в комнате, включая отправителя
         // (публичное сообщение в комнате — видят все участники комнаты, включая отправителя)
         io.to(`room:${data.roomId}`).emit("message", {
+          _id: savedMessage?._id?.toString(),
           roomId: data.roomId,
           userId: data.userId,
-          ...formatMessage(data.username, data.message),
+          ...formatMessage(
+            data.username,
+            data.message,
+            savedMessage?.createdAt
+          ),
+          createdAt: savedMessage?.createdAt,
         });
       });
     } catch (error) {
@@ -176,11 +212,34 @@ export function initializeChatHandler(io: SocketIOServer): void {
 }
 
 /**
- * Справочник методов Socket.IO Broadcast:
+ * Справочник методов Socket.IO:
  *
- * socket.emit()                    → Только текущему сокету (видно ТОЛЬКО отправителю)
- * socket.broadcast.emit()          → Всем подключенным, КРОМЕ текущего сокета (не видно отправителю)
- * io.emit()                        → Всем подключенным пользователям глобально, включая отправителя (видно всем)
- * io.to(room).emit()               → Всем пользователям в комнате, включая отправителя (видно всем в комнате)
- * socket.broadcast.to(room).emit() → Всем пользователям в комнате, КРОМЕ текущего (не видно отправителю)
+ * === ОТПРАВКА СООБЩЕНИЙ ===
+ * socket.emit(event, data)                    → Только текущему сокету (видно ТОЛЬКО отправителю)
+ * socket.broadcast.emit(event, data)          → Всем подключенным, КРОМЕ текущего сокета (не видно отправителю)
+ * io.emit(event, data)                        → Всем подключенным пользователям глобально, включая отправителя (видно всем)
+ * io.to(room).emit(event, data)               → Всем пользователям в комнате, включая отправителя (видно всем в комнате)
+ * socket.broadcast.to(room).emit(event, data) → Всем пользователям в комнате, КРОМЕ текущего (не видно отправителю)
+ * socket.to(room).emit(event, data)           → Всем в комнате, КРОМЕ текущего сокета (аналог broadcast.to)
+ *
+ * === УПРАВЛЕНИЕ КОМНАТАМИ ===
+ * socket.join(room)                           → Присоединение сокета к комнате
+ * socket.leave(room)                          → Выход сокета из комнаты
+ * socket.rooms                                → Set комнат, в которых находится сокет
+ * socket.in(room).emit(event, data)           → Альтернативный синтаксис для io.to(room).emit()
+ *
+ * === ПОДКЛЮЧЕНИЕ И ОТКЛЮЧЕНИЕ ===
+ * socket.disconnect()                         → Принудительное отключение сокета
+ * socket.connected                            → Boolean: подключен ли сокет
+ * socket.id                                   → Уникальный ID сокета
+ *
+ * === ОБРАБОТКА СОБЫТИЙ ===
+ * socket.on(event, callback)                  → Подписка на событие от клиента
+ * socket.once(event, callback)                 → Подписка на событие один раз
+ * socket.off(event, callback)                  → Отписка от события
+ * io.on(event, callback)                       → Подписка на событие на уровне сервера (например, "connection")
+ *
+ * === ДАННЫЕ СОКЕТА ===
+ * socket.handshake                            → Данные handshake запроса (auth, headers, query и т.д.)
+ * socket.data                                 → Произвольные данные, привязанные к сокету
  */

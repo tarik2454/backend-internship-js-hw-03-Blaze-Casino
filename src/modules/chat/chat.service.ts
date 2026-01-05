@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import { User } from "../users/models/users.model";
 import { IUser } from "../users/models/users.types";
 import { ChatMessage } from "./models/chat-message.model";
@@ -9,20 +10,18 @@ class ChatService {
     username: string;
     text: string;
     userId?: string;
-  }): Promise<void> {
+  }): Promise<IChatMessage | null> {
     try {
-      await ChatMessage.create(params);
+      const message = await ChatMessage.create(params);
       await this.trimRoomMessages(params.roomId);
+      return message;
     } catch (err) {
       console.warn("[ChatService] Failed to save/trim message:", err);
-      // We might want to throw here depending on requirements, but utils just logged. keeping consistent.
+      return null;
     }
   }
 
-  async getHistory(
-    roomId: string,
-    limit: number = 100
-  ): Promise<IChatMessage[]> {
+  async getHistory(roomId: string, limit = 100): Promise<IChatMessage[]> {
     try {
       const recent = await ChatMessage.find({ roomId })
         .sort({ createdAt: -1 })
@@ -41,7 +40,6 @@ class ChatService {
 
   private async trimRoomMessages(roomId: string): Promise<void> {
     try {
-      // Keep only last 100 messages
       const toDelete = await ChatMessage.find({ roomId })
         .sort({ createdAt: -1 })
         .skip(100)
@@ -49,7 +47,7 @@ class ChatService {
         .lean();
 
       if (toDelete && toDelete.length) {
-        const ids = toDelete.map((m: any) => m._id);
+        const ids = toDelete.map((m: { _id: Types.ObjectId }) => m._id);
         await ChatMessage.deleteMany({ _id: { $in: ids } });
       }
     } catch (err) {
