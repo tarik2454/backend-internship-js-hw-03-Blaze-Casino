@@ -1,4 +1,4 @@
-import express, { Request, Response } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import path from "path";
 import logger from "morgan";
 import cors from "cors";
@@ -50,16 +50,18 @@ app.use((_req: Request, res: Response) => {
   res.status(404).json({ message: "Not found" });
 });
 
-app.use((err: ExpressError, _req: Request, res: Response) => {
-  console.error("Error:", {
-    message: err.message,
-    stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
-    status: err.status || err.statusCode,
-  });
+app.use(
+  (err: ExpressError, _req: Request, res: Response, _next: NextFunction) => {
+    console.error("Error:", {
+      message: err.message,
+      stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+      status: err.status || err.statusCode,
+    });
 
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
-  res.status(status).json({ message });
-});
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+    res.status(status).json({ message });
+  }
+);
 
 export default app;
