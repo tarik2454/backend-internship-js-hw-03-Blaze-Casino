@@ -11,6 +11,11 @@ class AuthService {
     password: string;
     username: string;
   }): Promise<IUser> {
+    const existingUser = await usersService.getUserByEmail(userData.email);
+    if (existingUser) {
+      throw HttpError(409, "User with this email already exists");
+    }
+
     return await usersService.createUser(userData);
   }
 
