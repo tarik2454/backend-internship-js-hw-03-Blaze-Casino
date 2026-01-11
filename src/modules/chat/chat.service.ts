@@ -26,6 +26,7 @@ class ChatService {
       const recent = await ChatMessage.find({ roomId })
         .sort({ createdAt: -1 })
         .limit(limit)
+        .populate("userId", "username avatarURL")
         .lean();
       return recent.reverse() as IChatMessage[];
     } catch (err) {

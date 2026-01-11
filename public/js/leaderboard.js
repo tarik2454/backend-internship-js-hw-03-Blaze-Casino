@@ -80,7 +80,20 @@ async function loadLeaderboard(period = "all") {
         (player) => `
       <tr style="border-bottom: 1px solid rgba(102, 126, 234, 0.1);">
         <td style="padding: 0.75rem; font-weight: 600;">#${player.rank}</td>
-        <td style="padding: 0.75rem;">${escapeHtml(player.username)}</td>
+        <td style="padding: 0.75rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            ${
+              player.avatarURL
+                ? `<img src="${escapeHtml(
+                    player.avatarURL
+                  )}" alt="avatar" style="width: 24px; height: 24px; border-radius: 50%; object-fit: cover;">`
+                : `<div style="width: 24px; height: 24px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-dim);">${player.username
+                    .charAt(0)
+                    .toUpperCase()}</div>`
+            }
+            ${escapeHtml(player.username)}
+          </div>
+        </td>
         <td style="padding: 0.75rem; text-align: right;">$${player.totalWagered.toFixed(
           2
         )}</td>
@@ -103,7 +116,14 @@ async function loadLeaderboard(period = "all") {
           border-radius: 1rem;
           padding: 1.5rem;
         ">
-          <div style="font-weight: 600; margin-bottom: 0.75rem; color: var(--text-primary);">
+          <div style="font-weight: 600; margin-bottom: 0.75rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.75rem;">
+            ${
+              data.currentUser.avatarURL
+                ? `<img src="${escapeHtml(
+                    data.currentUser.avatarURL
+                  )}" alt="avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(102, 126, 234, 0.5);">`
+                : ""
+            }
             Your Position
           </div>
           <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; text-align: center;">

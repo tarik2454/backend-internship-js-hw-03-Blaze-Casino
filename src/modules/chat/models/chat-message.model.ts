@@ -4,7 +4,7 @@ import { IChatMessage } from "./chat-message.types";
 const chatMessageSchema = new mongoose.Schema(
   {
     roomId: { type: String, required: true, index: true },
-    userId: { type: String },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     username: { type: String, required: true },
     text: { type: String, required: true },
   },

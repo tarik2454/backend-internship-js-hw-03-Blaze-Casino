@@ -74,6 +74,7 @@ function initChat() {
       time: data.time || new Date().toLocaleTimeString(),
       roomId: roomId,
       userId: data.userId || null,
+      avatarURL: data.avatarURL || null,
       timestamp: data.timestamp || new Date().toISOString(),
     };
 
@@ -95,6 +96,7 @@ function initChat() {
           (msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString() : ""),
         roomId: data.roomId,
         userId: msg.userId || null,
+        avatarURL: msg.avatarURL || null,
         timestamp: msg.createdAt || new Date().toISOString(),
       });
     });
@@ -355,6 +357,21 @@ function renderMessages(roomId) {
           margin-bottom: 0.75rem;
           width: 100%;
         ">
+          ${
+            !isOwnMessage
+              ? `<div style="margin-right: 0.5rem; margin-top: 0rem; flex-shrink: 0;">
+                   ${
+                     msg.avatarURL
+                       ? `<img src="${escapeHtml(
+                           msg.avatarURL
+                         )}" alt="Av" style="width: 28px; height: 28px; border-radius: 50%; object-fit: cover;">`
+                       : `<div style="width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-dim);">${username
+                           .charAt(0)
+                           .toUpperCase()}</div>`
+                   }
+                 </div>`
+              : ""
+          }
           <div style="
             max-width: 70%;
             min-width: 120px;

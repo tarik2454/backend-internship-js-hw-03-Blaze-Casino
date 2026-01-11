@@ -76,7 +76,6 @@ export function initializeChatHandler(io: SocketIOServer): void {
         const room = CHAT_ROOMS.find((r) => r.id === data.roomId);
         const roomName = room?.name || data.roomId;
 
-        
         // Отправляем уведомление ТОЛЬКО если это первое подключение к этой комнате
         if (!socket.data.joinedRooms?.has(data.roomId)) {
           const joinedText = `${socket.data.username} has joined ${roomName}`;
@@ -126,11 +125,27 @@ export function initializeChatHandler(io: SocketIOServer): void {
           })
           .map((msg) => {
             // Форматируем сообщения из истории в том же формате, что и новые сообщения
+            let avatarURL: string | null = null;
+            if (
+              msg.userId &&
+              typeof msg.userId === "object" &&
+              "avatarURL" in msg.userId
+            ) {
+              const user = msg.userId as unknown as { avatarURL?: string };
+              avatarURL = user.avatarURL || null;
+            }
+
             return {
               _id: msg._id?.toString(),
               username: msg.username,
               text: msg.text,
-              userId: msg.userId?.toString(),
+              userId:
+                msg.userId &&
+                typeof msg.userId === "object" &&
+                "_id" in msg.userId
+                  ? (msg.userId as any)._id.toString()
+                  : msg.userId?.toString(),
+              avatarURL,
               time: formatMessage(msg.username, msg.text, msg.createdAt).time,
               createdAt: msg.createdAt,
             };
@@ -197,6 +212,7 @@ export function initializeChatHandler(io: SocketIOServer): void {
           _id: savedMessage?._id?.toString(),
           roomId: data.roomId,
           userId: data.userId,
+          avatarURL: socket.data.user?.avatarURL || null,
           ...formatMessage(
             data.username,
             data.message,
