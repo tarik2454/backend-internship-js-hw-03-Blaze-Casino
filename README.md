@@ -539,11 +539,13 @@ GET /api/cases/history?limit=10&offset=0
 **Namespace:** корневой `/` (default namespace)
 
 **Аутентификация:**
+
 - Токен передается в `socket.handshake.auth.token` при подключении
 - Требуется валидный JWT Access Token
 - При отсутствии или невалидном токене сокет отключается
 
 **Доступные комнаты:**
+
 - `general` - General Chat
 - `crash` - Crash Chat
 
@@ -554,6 +556,7 @@ GET /api/cases/history?limit=10&offset=0
 **Событие:** `chat:join`
 
 **Данные:**
+
 ```json
 {
   "roomId": "general"
@@ -561,6 +564,7 @@ GET /api/cases/history?limit=10&offset=0
 ```
 
 **Действия сервера:**
+
 1. Проверяет существование комнаты
 2. Присоединяет сокет к комнате `room:{roomId}`
 3. Если это первое подключение к комнате в рамках сессии:
@@ -574,6 +578,7 @@ GET /api/cases/history?limit=10&offset=0
 **Событие:** `chat:leave`
 
 **Данные:**
+
 ```json
 {
   "roomId": "general"
@@ -581,6 +586,7 @@ GET /api/cases/history?limit=10&offset=0
 ```
 
 **Действия сервера:**
+
 1. Проверяет, был ли пользователь в комнате
 2. Сохраняет уведомление о выходе в БД
 3. Отправляет уведомление другим участникам (покинувший не увидит)
@@ -591,6 +597,7 @@ GET /api/cases/history?limit=10&offset=0
 **Событие:** `chat:message`
 
 **Данные:**
+
 ```json
 {
   "roomId": "general",
@@ -601,6 +608,7 @@ GET /api/cases/history?limit=10&offset=0
 ```
 
 **Действия сервера:**
+
 1. Проверяет существование комнаты
 2. Сохраняет сообщение в MongoDB
 3. Отправляет сообщение всем участникам комнаты (включая отправителя) через `io.to(room).emit("message", ...)`
@@ -615,6 +623,7 @@ GET /api/cases/history?limit=10&offset=0
 **Отправляется:** При успешном подключении
 
 **Данные:**
+
 ```json
 [
   { "id": "general", "name": "General Chat" },
@@ -629,6 +638,7 @@ GET /api/cases/history?limit=10&offset=0
 **Отправляется:** После присоединения к комнате (`chat:join`)
 
 **Данные:**
+
 ```json
 {
   "roomId": "general",
@@ -638,6 +648,7 @@ GET /api/cases/history?limit=10&offset=0
       "username": "john_doe",
       "text": "Привет!",
       "userId": "65a1b2c3d4e5f6g7h8i9j0k2",
+      "avatarURL": "https://example.com/avatar.jpg",
       "time": "2:13 pm",
       "createdAt": "2024-01-15T14:13:58.000Z",
       "roomId": "general"
@@ -655,6 +666,7 @@ GET /api/cases/history?limit=10&offset=0
 **Отправляется:** При получении нового сообщения или уведомления о присоединении/выходе
 
 **Данные:**
+
 ```json
 {
   "_id": "65a1b2c3d4e5f6g7h8i9j0k1",
@@ -662,12 +674,14 @@ GET /api/cases/history?limit=10&offset=0
   "username": "john_doe",
   "text": "Текст сообщения",
   "userId": "65a1b2c3d4e5f6g7h8i9j0k2",
+  "avatarURL": "https://example.com/avatar.jpg",
   "time": "2:13 pm",
   "createdAt": "2024-01-15T14:13:58.000Z"
 }
 ```
 
-**Примечание:** 
+**Примечание:**
+
 - Для обычных сообщений отправляется всем в комнате, включая отправителя
 - Для уведомлений о присоединении/выходе отправляется всем, кроме самого пользователя
 
@@ -678,6 +692,7 @@ GET /api/cases/history?limit=10&offset=0
 **Отправляется:** При ошибках аутентификации, несуществующих комнатах и т.д.
 
 **Данные:**
+
 ```json
 {
   "message": "Authentication token required"
@@ -685,6 +700,7 @@ GET /api/cases/history?limit=10&offset=0
 ```
 
 **Возможные ошибки:**
+
 - `"Authentication token required"` - отсутствует токен
 - `"Invalid authentication token"` - невалидный токен
 - `"User not found"` - пользователь не найден в БД
@@ -699,14 +715,17 @@ GET /api/cases/history?limit=10&offset=0
 Возвращает историю сообщений для указанной комнаты (последние 100 сообщений).
 
 **Заголовки:**
+
 ```
 Authorization: Bearer <accessToken>
 ```
 
 **Параметры URL:**
+
 - `roomId` - ID комнаты (`general` или `crash`)
 
 **Успешный ответ (200):**
+
 ```json
 {
   "roomId": "general",
@@ -716,7 +735,11 @@ Authorization: Bearer <accessToken>
       "roomId": "general",
       "username": "john_doe",
       "text": "Привет!",
-      "userId": "65a1b2c3d4e5f6g7h8i9j0k2",
+      "userId": {
+        "_id": "65a1b2c3d4e5f6g7h8i9j0k2",
+        "username": "john_doe",
+        "avatarURL": "https://example.com/avatar.jpg"
+      },
       "createdAt": "2024-01-15T14:13:58.000Z"
     }
   ]
@@ -724,30 +747,36 @@ Authorization: Bearer <accessToken>
 ```
 
 **Ошибки:**
+
 - `400` - Комната не существует
 - `401` - Не авторизован
 
 #### Особенности реализации
 
 **Хранение сообщений:**
+
 - Все сообщения сохраняются в MongoDB (модель: `ChatMessage`)
 - Автоматическое удаление старых сообщений: в БД хранится не более **100 последних сообщений** для каждой комнаты
 - Бот-сообщения о присоединении/выходе также сохраняются в БД
 
 **Фильтрация сообщений:**
+
 - Пользователь не видит сообщения о своем собственном присоединении/выходе:
   - Не получает их в реальном времени (используется `socket.broadcast.to()`)
   - Не видит их в истории (фильтрация при отправке `chat:history`)
 
 **Форматирование времени:**
+
 - Время форматируется в формате `"h:mm a"` (например, `"2:13 pm"`)
 - Используется `Intl.DateTimeFormat` для форматирования времени из `createdAt`
 
 **Предотвращение дублирования:**
+
 - Все сообщения содержат `_id` для идентификации
 - Клиент должен проверять `_id` при добавлении сообщений, чтобы избежать дублирования
 
 **Rate Limiting:**
+
 - REST эндпоинт `/api/chat/:roomId/history` использует `generalLimiter` (100 запросов в секунду)
 
 ---
@@ -1333,6 +1362,7 @@ Authorization: Bearer <accessToken>
     {
       "rank": 1,
       "username": "player1",
+      "avatarURL": "https://example.com/avatar1.jpg",
       "totalWagered": 10000.5,
       "gamesPlayed": 150,
       "winRate": 65.33
@@ -1348,6 +1378,7 @@ Authorization: Bearer <accessToken>
   "currentUser": {
     "rank": 15,
     "username": "current_user",
+    "avatarURL": "https://example.com/avatar_current.jpg",
     "totalWagered": 2500.0,
     "gamesPlayed": 45,
     "winRate": 55.56
@@ -1361,6 +1392,7 @@ Authorization: Bearer <accessToken>
 - `currentUser` - Информация о текущем пользователе (может быть `null`, если пользователь не играл в указанный период)
 - `rank` - Позиция в рейтинге
 - `username` - Имя пользователя
+- `avatarURL` - URL аватара пользователя (может быть null)
 - `totalWagered` - Общая сумма поставленных средств
 - `gamesPlayed` - Количество сыгранных игр
 - `winRate` - Процент побед (округлено до 2 знаков после запятой)
