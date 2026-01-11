@@ -11,6 +11,7 @@ export const userSignupSchema = z.object({
   email: z
     .string({ error: '"email" is a required field' })
     .pipe(z.email({ message: '"email" must be a valid email' })),
+  avatarURL: z.string().optional(),
 });
 
 export const userSigninSchema = z.object({
@@ -28,6 +29,7 @@ export const userUpdateSchema = z.object({
     .min(2, { message: '"username" should have a minimum length of 2' })
     .max(20, { message: '"username" should have a maximum length of 20' })
     .optional(),
+  avatarURL: z.string().optional(),
   balance: z.number().optional(),
   totalWagered: z.number().optional(),
   gamesPlayed: z.number().int().optional(),

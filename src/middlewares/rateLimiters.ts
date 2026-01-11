@@ -21,6 +21,7 @@ export const loginLimiter = rateLimit({
   message: "Too many login attempts, please try again later",
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
 });
 
 export const registerLimiter = rateLimit({
@@ -29,6 +30,7 @@ export const registerLimiter = rateLimit({
   message: "Too many registration attempts, please try again later",
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
 });
 
 export const betsLimiter = rateLimit({
@@ -38,6 +40,7 @@ export const betsLimiter = rateLimit({
   message: "Too many bet requests, please slow down",
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
 });
 
 export const caseOpeningLimiter = rateLimit({
@@ -47,6 +50,7 @@ export const caseOpeningLimiter = rateLimit({
   message: "Too many case opening requests, please slow down",
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
 });
 
 export const minesRevealLimiter = rateLimit({
@@ -56,6 +60,7 @@ export const minesRevealLimiter = rateLimit({
   message: "Too many reveal requests, please slow down",
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
 });
 
 export const generalLimiter = rateLimit({
@@ -65,4 +70,5 @@ export const generalLimiter = rateLimit({
   message: "Too many requests, please slow down",
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { trustProxy: false },
 });

@@ -13,22 +13,22 @@ class LeaderboardService {
 
     switch (periodType) {
       case "daily":
-        periodStart.setHours(0, 0, 0, 0);
+        periodStart.setUTCHours(0, 0, 0, 0);
         break;
       case "weekly": {
-        const dayOfWeek = now.getDay();
-        const diff = now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-        periodStart.setDate(diff);
-        periodStart.setHours(0, 0, 0, 0);
+        const dayOfWeek = now.getUTCDay();
+        const diff = now.getUTCDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+        periodStart.setUTCDate(diff);
+        periodStart.setUTCHours(0, 0, 0, 0);
         break;
       }
       case "monthly":
-        periodStart.setDate(1);
-        periodStart.setHours(0, 0, 0, 0);
+        periodStart.setUTCDate(1);
+        periodStart.setUTCHours(0, 0, 0, 0);
         break;
       case "all":
-        periodStart.setFullYear(2020, 0, 1);
-        periodStart.setHours(0, 0, 0, 0);
+        periodStart.setUTCFullYear(2020, 0, 1);
+        periodStart.setUTCHours(0, 0, 0, 0);
         break;
     }
 
@@ -74,7 +74,7 @@ class LeaderboardService {
       periodStart,
       gamesPlayed: { $gt: 0 },
     })
-      .populate("userId", "username")
+      .populate("userId", "username avatarURL")
       .sort({ totalWagered: -1 })
       .limit(100)
       .lean();
@@ -87,6 +87,7 @@ class LeaderboardService {
         const user = stat.userId as unknown as {
           _id?: Types.ObjectId;
           username?: string;
+          avatarURL?: string;
         };
         return user._id && user.username;
       })
@@ -94,6 +95,7 @@ class LeaderboardService {
         const user = stat.userId as unknown as {
           _id: Types.ObjectId;
           username: string;
+          avatarURL: string;
         };
         const winRate =
           stat.gamesPlayed > 0
@@ -103,6 +105,7 @@ class LeaderboardService {
         return {
           rank: index + 1,
           username: user.username,
+          avatarURL: user.avatarURL || null,
           totalWagered: stat.totalWagered,
           gamesPlayed: stat.gamesPlayed,
           winRate,
@@ -117,7 +120,7 @@ class LeaderboardService {
         periodType: period,
         periodStart,
       })
-        .populate("userId", "username")
+        .populate("userId", "username avatarURL")
         .lean();
 
       if (
@@ -128,11 +131,13 @@ class LeaderboardService {
         const user = currentUserStat.userId as unknown as {
           _id?: Types.ObjectId;
           username?: string;
+          avatarURL?: string;
         };
         if (user._id && user.username) {
           const typedUser = user as {
             _id: Types.ObjectId;
             username: string;
+            avatarURL: string;
           };
           const winRate =
             currentUserStat.gamesPlayed > 0
@@ -167,6 +172,7 @@ class LeaderboardService {
           currentUser = {
             rank,
             username: typedUser.username,
+            avatarURL: typedUser.avatarURL || null,
             totalWagered: currentUserStat.totalWagered,
             gamesPlayed: currentUserStat.gamesPlayed,
             winRate,

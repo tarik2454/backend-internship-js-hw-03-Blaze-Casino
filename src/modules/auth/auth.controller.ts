@@ -10,12 +10,13 @@ const signup = async (
   req: Request<Record<string, never>, Record<string, never>, UserSignupDTO>,
   res: Response
 ): Promise<void> => {
-  const { email, password, username } = req.body;
+  const { email, password, username, avatarURL } = req.body;
 
   const newUser = await authService.signup({
     email,
     password,
     username,
+    avatarURL,
   });
 
   const ip =

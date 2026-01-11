@@ -25,6 +25,7 @@ const userSchema = new Schema<IUser>(
       minlength: 6,
       required: [true, "Set password for user"],
     },
+    avatarURL: { type: String, default: null },
     token: { type: String },
     balance: {
       type: Number,

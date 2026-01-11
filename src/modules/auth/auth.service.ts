@@ -10,6 +10,7 @@ class AuthService {
     email: string;
     password: string;
     username: string;
+    avatarURL?: string;
   }): Promise<IUser> {
     const existingUser = await usersService.getUserByEmail(userData.email);
     if (existingUser) {

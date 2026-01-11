@@ -17,6 +17,10 @@ const leaderboardStatsSchema = new Schema<ILeaderboardStats>(
       type: Date,
       required: true,
     },
+    avatarURL: {
+      type: String,
+      default: null,
+    },
     totalWagered: {
       type: Number,
       default: 0,

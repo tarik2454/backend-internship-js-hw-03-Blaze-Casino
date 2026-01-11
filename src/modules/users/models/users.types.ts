@@ -4,6 +4,7 @@ export interface IUser extends Document {
   username: string;
   email: string;
   password: string;
+  avatarURL?: string;
   token?: string;
   balance: number;
   totalWagered: number;

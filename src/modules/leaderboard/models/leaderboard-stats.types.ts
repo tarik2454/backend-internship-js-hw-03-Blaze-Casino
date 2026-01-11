@@ -6,9 +6,9 @@ export interface ILeaderboardStats extends Document {
   userId: Types.ObjectId;
   periodType: PeriodType;
   periodStart: Date;
+  avatarURL: string;
   totalWagered: number;
   totalWon: number;
   gamesPlayed: number;
   gamesWon: number;
 }
-

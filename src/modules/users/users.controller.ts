@@ -9,13 +9,22 @@ const getCurrent = async (
   req: AuthenticatedRequest,
   res: Response
 ): Promise<void> => {
-  const { _id, username, email, balance, totalWagered, gamesPlayed, totalWon } =
-    req.user;
+  const {
+    _id,
+    username,
+    email,
+    avatarURL,
+    balance,
+    totalWagered,
+    gamesPlayed,
+    totalWon,
+  } = req.user;
 
   res.json({
     _id: _id.toString(),
     username,
     email,
+    avatarURL,
     balance,
     totalWagered,
     gamesPlayed,
@@ -31,10 +40,12 @@ const updateUser = async (
   >,
   res: Response
 ): Promise<void> => {
-  const { username, balance, totalWagered, gamesPlayed, totalWon } = req.body;
+  const { username, avatarURL, balance, totalWagered, gamesPlayed, totalWon } =
+    req.body;
 
   const updateData: Partial<UserUpdateDTO> = {};
   if (username) updateData.username = username;
+  if (avatarURL) updateData.avatarURL = avatarURL;
   if (balance !== undefined) updateData.balance = balance;
   if (totalWagered !== undefined) updateData.totalWagered = totalWagered;
   if (gamesPlayed !== undefined) updateData.gamesPlayed = gamesPlayed;
