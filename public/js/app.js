@@ -716,17 +716,29 @@ function renderUser() {
   window.currentUser = currentUser;
   window.renderUser = renderUser;
   userInfoEl.innerHTML = `
-    <div>
-      <h2 style="font-size: 1.25rem; font-weight: 600;">${escapeHtml(
-        currentUser.username
-      )}</h2>
-      <p style="color: var(--text-dim);">${escapeHtml(currentUser.email)}</p>
+  userInfoEl.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      ${
+        currentUser.avatarURL
+          ? `<img src="${escapeHtml(
+              currentUser.avatarURL
+            )}" alt="Avatar" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(102, 126, 234, 0.5);">`
+          : `<div style="width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 600; color: var(--text-dim); border: 2px solid rgba(255,255,255,0.1);">${currentUser.username
+              .charAt(0)
+              .toUpperCase()}</div>`
+      }
+      <div>
+        <h2 style="font-size: 1.25rem; font-weight: 600;">${escapeHtml(
+          currentUser.username
+        )}</h2>
+        <p style="color: var(--text-dim);">${escapeHtml(currentUser.email)}</p>
+      </div>
     </div>
-      <div style="text-align: right;">
-        <div style="font-size: 1.5rem; color: var(--accent-success); font-weight: 700;">$${currentUser.balance.toFixed(
-          2
-        )}</div>
-        <div style="font-size: 0.875rem; color: var(--text-dim);">Balance</div>
+    <div style="text-align: right;">
+      <div style="font-size: 1.5rem; color: var(--accent-success); font-weight: 700;">$${currentUser.balance.toFixed(
+        2
+      )}</div>
+      <div style="font-size: 0.875rem; color: var(--text-dim);">Balance</div>
     </div>
   `;
 }
