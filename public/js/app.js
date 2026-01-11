@@ -716,7 +716,7 @@ function renderUser() {
   window.currentUser = currentUser;
   window.renderUser = renderUser;
   userInfoEl.innerHTML = `
-  userInfoEl.innerHTML = `
+
     <div style="display: flex; align-items: center; gap: 1rem;">
       ${
         currentUser.avatarURL
