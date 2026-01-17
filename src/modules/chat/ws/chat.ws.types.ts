@@ -23,3 +23,14 @@ export interface ChatHistoryEvent {
 export interface ChatErrorEvent {
   message: string;
 }
+
+export interface ChatRoomWithUsers {
+  id: string;
+  name: string;
+  activeUsers: number;
+}
+
+export interface ChatRoomUsersEvent {
+  roomId: string;
+  activeUsers: number;
+}

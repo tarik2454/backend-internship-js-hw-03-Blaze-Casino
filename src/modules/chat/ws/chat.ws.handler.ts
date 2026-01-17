@@ -8,6 +8,8 @@ import {
   ChatJoinEvent,
   ChatLeaveEvent,
   ChatMessageEvent,
+  ChatRoomWithUsers,
+  ChatRoomUsersEvent,
 } from "./chat.ws.types";
 
 interface ExtendedSocket extends Socket {
@@ -19,15 +21,26 @@ interface ExtendedSocket extends Socket {
   };
 }
 
-/**
- * Инициализация WebSocket обработчика для чата
- * Настраивает обработку событий для корневого namespace Socket.IO
- */
+function getRoomUserCount(io: SocketIOServer, roomId: string): number {
+  const roomName = `room:${roomId}`;
+  const room = io.sockets.adapter.rooms.get(roomName);
+  return room ? room.size : 0;
+}
+
+function emitRoomUsersUpdate(
+  io: SocketIOServer,
+  roomId: string
+): void {
+  const activeUsers = getRoomUserCount(io, roomId);
+  io.to(`room:${roomId}`).emit("chat:room:users", {
+    roomId,
+    activeUsers,
+  } as ChatRoomUsersEvent);
+}
+
 export function initializeChatHandler(io: SocketIOServer): void {
-  // Обработка подключения нового клиента
   io.on("connection", async (socket: ExtendedSocket) => {
     try {
-      // Получение JWT токена из запроса аутентификации
       const token = socket.handshake.auth?.token as string;
 
       if (!token) {
@@ -38,10 +51,8 @@ export function initializeChatHandler(io: SocketIOServer): void {
         return;
       }
 
-      // Валидация токена и извлечение userId из payload
       const payload = tokenManager.verifyAccessToken(token);
 
-      // Загрузка полного объекта пользователя из базы данных через сервис
       const user = await chatService.getUser(payload.userId);
 
       if (!user) {
@@ -50,18 +61,19 @@ export function initializeChatHandler(io: SocketIOServer): void {
         return;
       }
 
-      // Сохранение данных пользователя в socket.data для использования в обработчиках событий
       socket.data.username = user.username;
       socket.data.userId = user._id.toString();
       socket.data.user = user;
       socket.data.joinedRooms = new Set<string>();
 
-      // Отправка списка доступных комнат новому клиенту
-      socket.emit("chat:rooms", CHAT_ROOMS);
+      const roomsWithUsers: ChatRoomWithUsers[] = CHAT_ROOMS.map((room) => ({
+        id: room.id,
+        name: room.name,
+        activeUsers: getRoomUserCount(io, room.id),
+      }));
+      socket.emit("chat:rooms", roomsWithUsers);
 
-      // Обработка присоединения к комнате
       socket.on("chat:join", async (data: ChatJoinEvent) => {
-        // Проверка существования комнаты
         const roomExists = CHAT_ROOMS.some((room) => room.id === data.roomId);
         if (!roomExists) {
           socket.emit("chat:error", {
@@ -70,25 +82,20 @@ export function initializeChatHandler(io: SocketIOServer): void {
           return;
         }
 
-        // Присоединение сокета к комнате
         socket.join(`room:${data.roomId}`);
 
         const room = CHAT_ROOMS.find((r) => r.id === data.roomId);
         const roomName = room?.name || data.roomId;
 
-        // Отправляем уведомление ТОЛЬКО если это первое подключение к этой комнате
         if (!socket.data.joinedRooms?.has(data.roomId)) {
           const joinedText = `${socket.data.username} has joined ${roomName}`;
 
-          // Сохраняем уведомление о входе
           const savedJoinMessage = await chatService.saveMessage({
             roomId: data.roomId,
             username: BOT_NAME,
             text: joinedText,
           });
 
-          // Уведомление о новом участнике — отправляется всем в комнате, КРОМЕ присоединившегося
-          // (присоединившийся не увидит это сообщение ни в реальном времени, ни в истории)
           socket.broadcast.to(`room:${data.roomId}`).emit("message", {
             _id: savedJoinMessage?._id?.toString(),
             roomId: data.roomId,
@@ -99,12 +106,9 @@ export function initializeChatHandler(io: SocketIOServer): void {
           socket.data.joinedRooms?.add(data.roomId);
         }
 
-        // Отправляем историю комнаты (последние 100 сообщений) только текущему пользователю
-        // Исключаем сообщения о присоединении/выходе самого пользователя
         const history = await chatService.getHistory(data.roomId);
         const filteredHistory = history
           .filter((msg) => {
-            // Пропускаем сообщения от бота о присоединении/выходе текущего пользователя
             if (msg.username === BOT_NAME && socket.data.username) {
               const userJoinedPattern = new RegExp(
                 `^${socket.data.username} has joined`,
@@ -124,7 +128,6 @@ export function initializeChatHandler(io: SocketIOServer): void {
             return true;
           })
           .map((msg) => {
-            // Форматируем сообщения из истории в том же формате, что и новые сообщения
             let avatarURL: string | null = null;
             if (
               msg.userId &&
@@ -135,16 +138,21 @@ export function initializeChatHandler(io: SocketIOServer): void {
               avatarURL = user.avatarURL || null;
             }
 
+            let userIdString: string | null = null;
+            if (msg.userId) {
+              if (typeof msg.userId === "object" && "_id" in msg.userId) {
+                const userWithId = msg.userId as IUser;
+                userIdString = userWithId._id.toString();
+              } else {
+                userIdString = String(msg.userId);
+              }
+            }
+
             return {
               _id: msg._id?.toString(),
               username: msg.username,
               text: msg.text,
-              userId:
-                msg.userId &&
-                typeof msg.userId === "object" &&
-                "_id" in msg.userId
-                  ? (msg.userId as any)._id.toString()
-                  : msg.userId?.toString(),
+              userId: userIdString,
               avatarURL,
               time: formatMessage(msg.username, msg.text, msg.createdAt).time,
               createdAt: msg.createdAt,
@@ -154,25 +162,22 @@ export function initializeChatHandler(io: SocketIOServer): void {
           roomId: data.roomId,
           messages: filteredHistory,
         });
+
+        emitRoomUsersUpdate(io, data.roomId);
       });
 
-      // Обработка покидания комнаты
       socket.on("chat:leave", async (data: ChatLeaveEvent) => {
-        // Если пользователь действительно был в комнате
         if (socket.data.joinedRooms?.has(data.roomId)) {
           const room = CHAT_ROOMS.find((r) => r.id === data.roomId);
           const roomName = room?.name || data.roomId;
           const leftText = `${socket.data.username} has left ${roomName}`;
 
-          // Сохраняем уведомление о выходе
           const savedLeaveMessage = await chatService.saveMessage({
             roomId: data.roomId,
             username: BOT_NAME,
             text: leftText,
           });
 
-          // Уведомляем остальных участников комнаты о выходе пользователя
-          // (покинувший не увидит это сообщение ни в реальном времени, ни в истории)
           socket.broadcast.to(`room:${data.roomId}`).emit("message", {
             _id: savedLeaveMessage?._id?.toString(),
             roomId: data.roomId,
@@ -180,16 +185,15 @@ export function initializeChatHandler(io: SocketIOServer): void {
             createdAt: savedLeaveMessage?.createdAt,
           });
 
-          // Удаляем комнату из списка посещенных
           socket.data.joinedRooms.delete(data.roomId);
         }
 
         socket.leave(`room:${data.roomId}`);
+
+        emitRoomUsersUpdate(io, data.roomId);
       });
 
-      // Обработка отправки сообщения в комнату
       socket.on("chat:message", async (data: ChatMessageEvent) => {
-        // Проверка существования комнаты
         const roomExists = CHAT_ROOMS.some((room) => room.id === data.roomId);
         if (!roomExists) {
           socket.emit("chat:error", {
@@ -198,7 +202,6 @@ export function initializeChatHandler(io: SocketIOServer): void {
           return;
         }
 
-        // Сохраняем сообщение в базе
         const savedMessage = await chatService.saveMessage({
           roomId: data.roomId,
           userId: data.userId,
@@ -206,8 +209,6 @@ export function initializeChatHandler(io: SocketIOServer): void {
           text: data.message,
         });
 
-        // Отправка сообщения всем пользователям в комнате, включая отправителя
-        // (публичное сообщение в комнате — видят все участники комнаты, включая отправителя)
         io.to(`room:${data.roomId}`).emit("message", {
           _id: savedMessage?._id?.toString(),
           roomId: data.roomId,
@@ -220,6 +221,14 @@ export function initializeChatHandler(io: SocketIOServer): void {
           ),
           createdAt: savedMessage?.createdAt,
         });
+      });
+
+      socket.on("disconnect", () => {
+        if (socket.data.joinedRooms) {
+          socket.data.joinedRooms.forEach((roomId) => {
+            emitRoomUsersUpdate(io, roomId);
+          });
+        }
       });
     } catch (error) {
       socket.emit("chat:error", { message: "Invalid authentication token" });

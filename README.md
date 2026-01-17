@@ -548,6 +548,9 @@ GET /api/cases/history?limit=10&offset=0
 
 - `general` - General Chat
 - `crash` - Crash Chat
+- `mines` - Mines Chat
+- `cases` - Cases Chat
+- `plinko` - Plinko Chat
 
 #### WebSocket события (Client → Server)
 
@@ -572,6 +575,7 @@ GET /api/cases/history?limit=10&offset=0
    - Отправляет уведомление другим участникам через `socket.broadcast.to(room).emit("message", ...)`
 4. Отправляет историю комнаты текущему пользователю через `socket.emit("chat:history", ...)`
 5. Фильтрует из истории сообщения о собственном присоединении/выходе
+6. Отправляет обновление количества активных пользователей через `io.to(room).emit("chat:room:users", ...)`
 
 ##### Выход из комнаты
 
@@ -591,6 +595,7 @@ GET /api/cases/history?limit=10&offset=0
 2. Сохраняет уведомление о выходе в БД
 3. Отправляет уведомление другим участникам (покинувший не увидит)
 4. Удаляет сокет из комнаты
+5. Отправляет обновление количества активных пользователей через `io.to(room).emit("chat:room:users", ...)`
 
 ##### Отправка сообщения
 
@@ -626,10 +631,39 @@ GET /api/cases/history?limit=10&offset=0
 
 ```json
 [
-  { "id": "general", "name": "General Chat" },
-  { "id": "crash", "name": "Crash Chat" }
+  {
+    "id": "general",
+    "name": "General Chat",
+    "activeUsers": 5
+  },
+  {
+    "id": "crash",
+    "name": "Crash Chat",
+    "activeUsers": 3
+  },
+  {
+    "id": "mines",
+    "name": "Mines Chat",
+    "activeUsers": 2
+  },
+  {
+    "id": "cases",
+    "name": "Cases Chat",
+    "activeUsers": 1
+  },
+  {
+    "id": "plinko",
+    "name": "Plinko Chat",
+    "activeUsers": 4
+  }
 ]
 ```
+
+**Поля ответа:**
+
+- `id` - ID комнаты
+- `name` - Название комнаты
+- `activeUsers` - Количество активных пользователей в комнате на момент подключения
 
 ##### История комнаты
 
@@ -658,6 +692,28 @@ GET /api/cases/history?limit=10&offset=0
 ```
 
 **Примечание:** Сообщения о собственном присоединении/выходе исключаются из истории.
+
+##### Обновление количества пользователей в комнате
+
+**Событие:** `chat:room:users`
+
+**Отправляется:** При изменении количества активных пользователей в комнате (присоединение, выход, отключение)
+
+**Данные:**
+
+```json
+{
+  "roomId": "general",
+  "activeUsers": 5
+}
+```
+
+**Поля ответа:**
+
+- `roomId` - ID комнаты
+- `activeUsers` - Текущее количество активных пользователей в комнате
+
+**Примечание:** Событие отправляется всем пользователям в указанной комнате при каждом изменении количества участников.
 
 ##### Новое сообщение
 
