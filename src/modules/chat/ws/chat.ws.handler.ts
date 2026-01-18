@@ -1,7 +1,7 @@
 import { Server as SocketIOServer, Socket } from "socket.io";
 import { tokenManager } from "../../auth/tokens";
 import { formatMessage } from "../chat.utils";
-import { CHAT_ROOMS, BOT_NAME } from "../chat.config";
+import { CHAT_ROOMS } from "../chat.config";
 import { IUser } from "../../users/models/users.types";
 import chatService from "../chat.service";
 import {
@@ -84,50 +84,12 @@ export function initializeChatHandler(io: SocketIOServer): void {
 
         socket.join(`room:${data.roomId}`);
 
-        const room = CHAT_ROOMS.find((r) => r.id === data.roomId);
-        const roomName = room?.name || data.roomId;
-
         if (!socket.data.joinedRooms?.has(data.roomId)) {
-          const joinedText = `${socket.data.username} has joined ${roomName}`;
-
-          const savedJoinMessage = await chatService.saveMessage({
-            roomId: data.roomId,
-            username: BOT_NAME,
-            text: joinedText,
-          });
-
-          socket.broadcast.to(`room:${data.roomId}`).emit("message", {
-            _id: savedJoinMessage?._id?.toString(),
-            roomId: data.roomId,
-            ...formatMessage(BOT_NAME, joinedText, savedJoinMessage?.createdAt),
-            createdAt: savedJoinMessage?.createdAt,
-          });
-
           socket.data.joinedRooms?.add(data.roomId);
         }
 
         const history = await chatService.getHistory(data.roomId);
-        const filteredHistory = history
-          .filter((msg) => {
-            if (msg.username === BOT_NAME && socket.data.username) {
-              const userJoinedPattern = new RegExp(
-                `^${socket.data.username} has joined`,
-                "i"
-              );
-              const userLeftPattern = new RegExp(
-                `^${socket.data.username} has left`,
-                "i"
-              );
-              if (
-                userJoinedPattern.test(msg.text) ||
-                userLeftPattern.test(msg.text)
-              ) {
-                return false;
-              }
-            }
-            return true;
-          })
-          .map((msg) => {
+        const filteredHistory = history.map((msg) => {
             let avatarURL: string | null = null;
             if (
               msg.userId &&
@@ -168,23 +130,6 @@ export function initializeChatHandler(io: SocketIOServer): void {
 
       socket.on("chat:leave", async (data: ChatLeaveEvent) => {
         if (socket.data.joinedRooms?.has(data.roomId)) {
-          const room = CHAT_ROOMS.find((r) => r.id === data.roomId);
-          const roomName = room?.name || data.roomId;
-          const leftText = `${socket.data.username} has left ${roomName}`;
-
-          const savedLeaveMessage = await chatService.saveMessage({
-            roomId: data.roomId,
-            username: BOT_NAME,
-            text: leftText,
-          });
-
-          socket.broadcast.to(`room:${data.roomId}`).emit("message", {
-            _id: savedLeaveMessage?._id?.toString(),
-            roomId: data.roomId,
-            ...formatMessage(BOT_NAME, leftText, savedLeaveMessage?.createdAt),
-            createdAt: savedLeaveMessage?.createdAt,
-          });
-
           socket.data.joinedRooms.delete(data.roomId);
         }
 
