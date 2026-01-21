@@ -1108,7 +1108,7 @@ Authorization: Bearer <accessToken>
 
 **POST** `/crash/bet`
 
-Создает новую ставку в текущем мультиплеерном раунде (несколько игроков могут участвовать в одном раунде). REST-эндпоинты для ставок и истории сохраняются. Реализация WebSocket для управления раундами была рефакторена в функциональный API (`initializeCrashHandler(io)`, `emitGameTick(...)`, `emitGameCrash(...)`) — сервер управляет раундами и рассылает события всем игрокам (или по комнатам).
+Создает новую ставку в текущем мультиплеерном раунде (несколько игроков могут участвовать в одном раунде). Для получения обновлений игры в реальном времени используйте WebSocket (см. раздел WebSocket подключение ниже).
 
 **Тело запроса:**
 
@@ -1275,6 +1275,137 @@ Authorization: Bearer <accessToken>
 - `status` - Статус ставки: "won", "lost"
 - `crashPoint` - Точка краша игры
 - `createdAt` - Время создания ставки
+
+---
+
+#### WebSocket подключение
+
+**Namespace:** `/crash`
+
+**Аутентификация:**
+
+- WebSocket для crash не требует аутентификации
+- Подключение доступно всем клиентам
+
+**Примечание:** Для получения обновлений игры в реальном времени необходимо подписаться на конкретную игру через событие `subscribe:game`.
+
+#### WebSocket события (Client → Server)
+
+##### Подписка на игру
+
+**Событие:** `subscribe:game`
+
+**Данные:**
+
+```json
+{
+  "gameId": "65c1b2c3d4e5f6g7h8i9j0k1"
+}
+```
+
+**Действия сервера:**
+
+1. Присоединяет сокет к комнате `game:{gameId}`
+2. Клиент начинает получать события `game:tick` и `game:crash` для указанной игры
+
+**Примечание:** Клиент должен подписаться на игру после получения `gameId` из REST эндпоинта `/crash/current` или `/crash/bet`.
+
+#### WebSocket события (Server → Client)
+
+##### Обновление множителя
+
+**Событие:** `game:tick`
+
+**Отправляется:** Каждые 100ms во время активной игры (статус "running")
+
+**Данные:**
+
+```json
+{
+  "gameId": "65c1b2c3d4e5f6g7h8i9j0k1",
+  "multiplier": 1.25,
+  "elapsed": 2500
+}
+```
+
+**Поля ответа:**
+
+- `gameId` - ID игры
+- `multiplier` - Текущий множитель (например, 1.25x)
+- `elapsed` - Время с начала игры в миллисекундах
+
+**Примечание:** Событие отправляется всем клиентам, подписанным на игру через `subscribe:game`. Множитель обновляется каждые 100ms по формуле: `multiplier = floor(1.0024^(elapsed/100) * 100) / 100`.
+
+##### Завершение игры (Crash)
+
+**Событие:** `game:crash`
+
+**Отправляется:** Когда множитель достигает точки краша (`crashPoint`)
+
+**Данные:**
+
+```json
+{
+  "gameId": "65c1b2c3d4e5f6g7h8i9j0k1",
+  "crashPoint": 2.45,
+  "serverSeed": "revealed_server_seed",
+  "reveal": "revealed_server_seed"
+}
+```
+
+**Поля ответа:**
+
+- `gameId` - ID игры
+- `crashPoint` - Точка краша (множитель, на котором игра завершилась)
+- `serverSeed` - Раскрытый server seed для проверки Provably Fair
+- `reveal` - Раскрытый seed (для обратной совместимости)
+
+**Примечание:** Событие отправляется всем клиентам, подписанным на игру. После получения этого события все активные ставки без кешаута помечаются как проигранные.
+
+#### Пример использования
+
+**1. Подключение к namespace:**
+
+```javascript
+const socket = io('/crash');
+
+socket.on('connect', () => {
+  console.log('Connected to crash namespace');
+});
+```
+
+**2. Получение gameId и подписка:**
+
+```javascript
+// Получаем gameId через REST API
+const response = await fetch('/api/crash/current', {
+  headers: { 'Authorization': `Bearer ${token}` }
+});
+const { gameId } = await response.json();
+
+// Подписываемся на игру
+socket.emit('subscribe:game', { gameId });
+```
+
+**3. Обработка событий:**
+
+```javascript
+// Обновление множителя в реальном времени
+socket.on('game:tick', (data) => {
+  console.log(`Multiplier: ${data.multiplier}x`);
+  updateMultiplierDisplay(data.multiplier);
+});
+
+// Обработка завершения игры
+socket.on('game:crash', (data) => {
+  console.log(`Game crashed at ${data.crashPoint}x`);
+  showCrashResult(data.crashPoint);
+  // Загрузить следующую игру
+  loadNextGame();
+});
+```
+
+**Примечание:** WebSocket используется только для получения обновлений игры в реальном времени. Все действия (ставки, кешаут) выполняются через REST API эндпоинты.
 
 ---
 
