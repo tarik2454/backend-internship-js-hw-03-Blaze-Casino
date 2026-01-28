@@ -49,6 +49,7 @@ class CasesService {
       name: c.name,
       price: c.price,
       image: c.imageUrl,
+      description: c.description,
       items: [],
     }));
     return { cases: caseList };
@@ -81,6 +82,7 @@ class CasesService {
       id: result._id as string,
       name: result.name,
       price: result.price,
+      description: result.description,
       items,
     };
   }

@@ -22,6 +22,7 @@ const CASES_DATA = [
     slug: "animal-case",
     price: 50,
     imageUrl: "🦁",
+    description: "Animal Case",
     contents: [
       { emoji: "🐭", name: "Mouse" },
       { emoji: "🐰", name: "Rabbit" },
@@ -44,6 +45,7 @@ const CASES_DATA = [
     slug: "space-case",
     price: 75,
     imageUrl: "🚀",
+    description: "Space Case",
     contents: [
       { emoji: "⭐", name: "Star" },
       { emoji: "🌙", name: "Moon" },
@@ -66,6 +68,7 @@ const CASES_DATA = [
     slug: "food-case",
     price: 40,
     imageUrl: "🍕",
+    description: "Food Case",
     contents: [
       { emoji: "🍎", name: "Apple" },
       { emoji: "🍌", name: "Banana" },
@@ -88,6 +91,7 @@ const CASES_DATA = [
     slug: "sports-case",
     price: 60,
     imageUrl: "⚽",
+    description: "Sports Case",
     contents: [
       { emoji: "⚽", name: "Soccer Ball" },
       { emoji: "🏀", name: "Basketball" },
@@ -201,6 +205,7 @@ const seed = async () => {
         slug: caseData.slug,
         price: caseData.price,
         imageUrl: caseData.imageUrl,
+        description: caseData.description,
         isActive: true,
       });
       console.log(

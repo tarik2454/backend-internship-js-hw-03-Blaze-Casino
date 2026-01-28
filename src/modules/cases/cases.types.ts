@@ -40,6 +40,7 @@ export interface CaseListItem {
   name: string;
   price: number;
   image: string;
+  description: string | null;
   items: [];
 }
 
@@ -51,6 +52,7 @@ export interface CaseDetailsResponse {
   id: string;
   name: string;
   price: number;
+  description: string | null;
   items: CaseDetailsItem[];
 }
 

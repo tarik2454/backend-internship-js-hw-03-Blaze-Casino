@@ -5,7 +5,7 @@ export interface ICase extends Document {
   slug: string;
   price: number;
   imageUrl: string;
+  description: string | null;
   isActive: boolean;
   createdAt: Date;
 }
-

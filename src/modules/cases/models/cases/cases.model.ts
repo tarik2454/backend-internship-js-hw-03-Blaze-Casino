@@ -7,6 +7,7 @@ const caseSchema = new Schema<ICase>(
     slug: { type: String, required: true, unique: true },
     price: { type: Number, required: true },
     imageUrl: { type: String, required: true },
+    description: { type: String, default: null },
     isActive: { type: Boolean, default: true },
     createdAt: { type: Date, default: Date.now },
   },
@@ -19,4 +20,3 @@ const caseSchema = new Schema<ICase>(
 caseSchema.index({ isActive: 1 });
 
 export const Case = model<ICase>("Case", caseSchema);
-

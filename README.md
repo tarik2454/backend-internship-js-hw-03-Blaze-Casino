@@ -297,6 +297,7 @@ Authorization: Bearer <accessToken>
       "name": "Starter Case",
       "price": 100,
       "image": "https://example.com/case-image.jpg",
+      "description": "A basic case with common items",
       "items": []
     },
     {
@@ -304,6 +305,7 @@ Authorization: Bearer <accessToken>
       "name": "Premium Case",
       "price": 500,
       "image": "https://example.com/premium-case.jpg",
+      "description": null,
       "items": []
     }
   ]
@@ -341,6 +343,7 @@ Authorization: Bearer <accessToken>
   "id": "65a1b2c3d4e5f6g7h8i9j0k1",
   "name": "Starter Case",
   "price": 100,
+  "description": "A basic case with common items",
   "items": [
     {
       "id": "65a1b2c3d4e5f6g7h8i9j0a1",
@@ -1367,10 +1370,10 @@ Authorization: Bearer <accessToken>
 **1. Подключение к namespace:**
 
 ```javascript
-const socket = io('/crash');
+const socket = io("/crash");
 
-socket.on('connect', () => {
-  console.log('Connected to crash namespace');
+socket.on("connect", () => {
+  console.log("Connected to crash namespace");
 });
 ```
 
@@ -1378,26 +1381,26 @@ socket.on('connect', () => {
 
 ```javascript
 // Получаем gameId через REST API
-const response = await fetch('/api/crash/current', {
-  headers: { 'Authorization': `Bearer ${token}` }
+const response = await fetch("/api/crash/current", {
+  headers: { Authorization: `Bearer ${token}` },
 });
 const { gameId } = await response.json();
 
 // Подписываемся на игру
-socket.emit('subscribe:game', { gameId });
+socket.emit("subscribe:game", { gameId });
 ```
 
 **3. Обработка событий:**
 
 ```javascript
 // Обновление множителя в реальном времени
-socket.on('game:tick', (data) => {
+socket.on("game:tick", (data) => {
   console.log(`Multiplier: ${data.multiplier}x`);
   updateMultiplierDisplay(data.multiplier);
 });
 
 // Обработка завершения игры
-socket.on('game:crash', (data) => {
+socket.on("game:crash", (data) => {
   console.log(`Game crashed at ${data.crashPoint}x`);
   showCrashResult(data.crashPoint);
   // Загрузить следующую игру
