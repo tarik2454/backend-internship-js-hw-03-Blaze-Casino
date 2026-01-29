@@ -33,6 +33,7 @@ export interface CaseDetailsItem {
   rarity: string;
   chance: number;
   value: number;
+  imageUrl: string;
 }
 
 export interface CaseListItem {

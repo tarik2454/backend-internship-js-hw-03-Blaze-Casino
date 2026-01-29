@@ -75,6 +75,7 @@ class CasesService {
         rarity: item.rarityId.name,
         value: item.value,
         chance: ci.chance,
+        imageUrl: item.imageUrl,
       };
     });
 
