@@ -229,7 +229,7 @@ const seed = async () => {
         const chance = getChance(index);
 
         // Создаем уникальное имя предмета для этого кейса
-        const itemName = `${caseData.name} - ${content.name} ${content.emoji}`;
+        const itemName = `${caseData.name} - ${content.name}`;
 
         const itemDoc = await Item.create({
           name: itemName,
