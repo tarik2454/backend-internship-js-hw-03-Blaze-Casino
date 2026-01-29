@@ -350,14 +350,16 @@ Authorization: Bearer <accessToken>
       "name": "AK-47 Redline",
       "rarity": "Rare",
       "value": 50,
-      "chance": 15.5
+      "chance": 15.5,
+      "imageUrl": "https://example.com/ak47-redline.jpg"
     },
     {
       "id": "65a1b2c3d4e5f6g7h8i9j0a2",
       "name": "Knife Butterfly",
       "rarity": "Legendary",
       "value": 500,
-      "chance": 0.5
+      "chance": 0.5,
+      "imageUrl": "https://example.com/knife-butterfly.jpg"
     }
   ]
 }
