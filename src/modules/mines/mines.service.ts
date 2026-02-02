@@ -18,6 +18,7 @@ class MinesService {
     amount: number,
     minesCount: number,
     clientSeed?: string,
+    gridSize = 5,
     ipAddress?: string,
     userAgent?: string
   ) {
@@ -34,8 +35,16 @@ class MinesService {
       throw HttpError(400, "Bet amount must be between 0.10 and 10000");
     }
 
-    if (minesCount < 1 || minesCount > 24) {
-      throw HttpError(400, "Mines count must be between 1 and 24");
+    if (gridSize < 5 || gridSize > 8) {
+      throw HttpError(400, "Grid size must be 5, 6, 7, or 8");
+    }
+
+    const totalTiles = gridSize * gridSize;
+    if (minesCount < 1 || minesCount >= totalTiles) {
+      throw HttpError(
+        400,
+        `Mines count must be between 1 and ${totalTiles - 1} for grid ${gridSize}x${gridSize}`
+      );
     }
 
     let serverSeed = user.serverSeed;
@@ -58,7 +67,8 @@ class MinesService {
       gameServerSeed,
       currentClientSeed,
       nonce,
-      minesCount
+      minesCount,
+      totalTiles
     );
 
     const serverSeedHash = hashServerSeed(gameServerSeed);
@@ -111,6 +121,7 @@ class MinesService {
           {
             userId: user._id,
             betAmount: amount,
+            gridSize,
             minesCount,
             minePositions,
             status: "active",
@@ -143,6 +154,7 @@ class MinesService {
             gameId: game[0]._id.toString(),
             betAmount: amount,
             minesCount,
+            gridSize,
           },
           ipAddress,
           userAgent,
@@ -151,12 +163,14 @@ class MinesService {
           console.error("Audit log failed:", err);
         });
 
-      const multipliers = generateMultiplierTable(minesCount);
+      const multipliers = generateMultiplierTable(minesCount, totalTiles);
 
       return {
         gameId: game[0]._id,
         amount,
         minesCount,
+        gridSize,
+        totalTiles,
         serverSeedHash,
         multipliers,
       };
@@ -175,14 +189,31 @@ class MinesService {
     ipAddress?: string,
     userAgent?: string
   ) {
-    if (position < 0 || position > 24) {
-      throw HttpError(400, "Position must be between 0 and 24");
-    }
-
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
+      const existingGame = await MinesGame.findOne({
+        _id: gameId,
+        userId: user._id,
+        status: "active",
+      }).session(session);
+
+      if (!existingGame) {
+        throw HttpError(
+          400,
+          "Game not found, not active, or position already revealed"
+        );
+      }
+
+      const totalTiles = existingGame.gridSize * existingGame.gridSize;
+      if (position < 0 || position >= totalTiles) {
+        throw HttpError(
+          400,
+          `Position must be between 0 and ${totalTiles - 1} for this grid`
+        );
+      }
+
       const game = await MinesGame.findOneAndUpdate(
         {
           _id: gameId,
@@ -266,14 +297,19 @@ class MinesService {
           revealedTiles: game.revealedPositions,
           safeTilesLeft: 0,
           minePositions: game.minePositions,
+          gridSize: game.gridSize,
+          totalTiles: game.gridSize * game.gridSize,
         };
       } else {
-        const safeTilesTotal = 25 - game.minesCount;
+        const totalTilesReveal = game.gridSize * game.gridSize;
+        const safeTilesTotal = totalTilesReveal - game.minesCount;
         const safeTilesLeft = safeTilesTotal - game.revealedPositions.length;
 
         const currentMultiplier = calculateMultiplier(
           game.minesCount,
-          game.revealedPositions.length
+          game.revealedPositions.length,
+          0.04,
+          totalTilesReveal
         );
 
         const currentValue =
@@ -353,6 +389,8 @@ class MinesService {
             safeTilesLeft,
             status: "won",
             winAmount: currentValue,
+            gridSize: game.gridSize,
+            totalTiles: totalTilesReveal,
           };
         }
 
@@ -390,6 +428,8 @@ class MinesService {
           currentValue,
           revealedTiles: game.revealedPositions,
           safeTilesLeft,
+          gridSize: game.gridSize,
+          totalTiles: totalTilesReveal,
         };
       }
     } catch (error) {
@@ -436,9 +476,12 @@ class MinesService {
         throw HttpError(400, "Cannot cashout without revealing any tiles");
       }
 
+      const totalTilesCashout = game.gridSize * game.gridSize;
       const currentMultiplier = calculateMultiplier(
         game.minesCount,
-        game.revealedPositions.length
+        game.revealedPositions.length,
+        0.04,
+        totalTilesCashout
       );
       const winAmount =
         Math.floor(game.betAmount * currentMultiplier * 100) / 100;
@@ -507,6 +550,8 @@ class MinesService {
         multiplier: currentMultiplier,
         serverSeed: game.serverSeed,
         minePositions: game.minePositions,
+        gridSize: game.gridSize,
+        totalTiles: totalTilesCashout,
       };
     } catch (error) {
       await session.abortTransaction();

@@ -846,12 +846,15 @@ Authorization: Bearer <accessToken>
 {
   "amount": 10,
   "minesCount": 3,
+  "gridSize": 6,
   "clientSeed": "optional_client_seed"
 }
 ```
 
 - `amount`: Сумма ставки (0.10 - 10000)
-- `minesCount`: Количество мин (1-24)
+- `minesCount`: Количество мин; должно быть меньше числа ячеек (1 <= minesCount < gridSize²). Для 5×5: 1–24, для 6×6: 1–35, для 7×7: 1–48, для 8×8: 1–63
+- `gridSize`: Размер сетки (5, 6, 7 или 8). Опционально, по умолчанию 5. 5 → 5×5 (25 ячеек), 6 → 6×6 (36), 7 → 7×7 (49), 8 → 8×8 (64)
+- `clientSeed`: Опционально
 
 **Успешный ответ (201):**
 
@@ -860,6 +863,8 @@ Authorization: Bearer <accessToken>
   "gameId": "65b...",
   "amount": 10,
   "minesCount": 3,
+  "gridSize": 6,
+  "totalTiles": 36,
   "serverSeedHash": "hash...",
   "multipliers": [1.03, 1.08, ...]
 }
@@ -882,7 +887,7 @@ Authorization: Bearer <accessToken>
 }
 ```
 
-- `position`: Номер ячейки (0-24)
+- `position`: Номер ячейки в диапазоне 0 … (gridSize² − 1). Для 5×5: 0–24, для 6×6: 0–35, для 7×7: 0–48, для 8×8: 0–63
 
 **Успешный ответ (200):**
 
@@ -893,7 +898,9 @@ Authorization: Bearer <accessToken>
   "currentMultiplier": 1.03,
   "currentValue": 10.3,
   "revealedTiles": [5],
-  "safeTilesLeft": 21
+  "safeTilesLeft": 21,
+  "gridSize": 6,
+  "totalTiles": 36
 }
 ```
 
@@ -922,7 +929,9 @@ Authorization: Bearer <accessToken>
   "winAmount": 15.5,
   "multiplier": 1.55,
   "serverSeed": "original_server_seed",
-  "minePositions": [0, 12, 24]
+  "minePositions": [0, 12, 24],
+  "gridSize": 6,
+  "totalTiles": 36
 }
 ```
 
@@ -932,13 +941,13 @@ Authorization: Bearer <accessToken>
 
 **GET** `/mines/active`
 
-Возвращает текущую активную игру пользователя, если она есть.
+Возвращает текущую активную игру пользователя, если она есть. Объект игры содержит `gridSize` и при сериализации все поля документа (в т.ч. для построения сетки на фронте: `gridSize`, `revealedPositions`, `minesCount` и т.д.). Количество ячеек = gridSize × gridSize (`totalTiles`).
 
 **Успешный ответ (200):**
 
 ```json
 {
-  "game": { ... } // или null
+  "game": { "_id": "...", "gridSize": 6, "betAmount": 10, "minesCount": 3, "revealedPositions": [...], ... } // или null
 }
 ```
 

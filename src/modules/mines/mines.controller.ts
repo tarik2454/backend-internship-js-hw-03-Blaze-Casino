@@ -10,7 +10,7 @@ import {
 } from "./mines.schema";
 
 const startMine = async (req: AuthBodyRequest<StartMineDTO>, res: Response) => {
-  const { amount, minesCount, clientSeed } = req.body;
+  const { amount, minesCount, clientSeed, gridSize } = req.body;
   const user = req.user;
 
   const result = await minesService.startMine(
@@ -18,6 +18,7 @@ const startMine = async (req: AuthBodyRequest<StartMineDTO>, res: Response) => {
     amount,
     minesCount,
     clientSeed,
+    gridSize,
     req.ip,
     req.userAgent
   );

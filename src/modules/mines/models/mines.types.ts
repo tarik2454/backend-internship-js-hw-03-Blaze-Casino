@@ -3,6 +3,7 @@ import { Document, Types } from "mongoose";
 export interface IMinesGame extends Document {
   userId: Types.ObjectId;
   betAmount: number;
+  gridSize: number;
   minesCount: number;
   minePositions: number[];
   revealedPositions: number[];

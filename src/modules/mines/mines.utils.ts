@@ -4,10 +4,11 @@ export function generateMinePositions(
   serverSeed: string,
   clientSeed: string,
   nonce: number,
-  minesCount: number
+  minesCount: number,
+  totalTiles: number
 ): number[] {
   const positions: number[] = [];
-  const available = Array.from({ length: 25 }, (_, i) => i);
+  const available = Array.from({ length: totalTiles }, (_, i) => i);
 
   for (let i = 0; i < minesCount; i++) {
     const combined = `${serverSeed}:${clientSeed}:${nonce}:${i}`;
@@ -22,9 +23,9 @@ export function generateMinePositions(
 export function calculateMultiplier(
   minesCount: number,
   revealedCount: number,
-  houseEdge = 0.04
+  houseEdge = 0.04,
+  totalTiles = 25
 ): number {
-  const totalTiles = 25;
   const safeTiles = totalTiles - minesCount;
 
   let probability = 1.0;
@@ -40,12 +41,15 @@ export function calculateMultiplier(
   return Math.round(multiplier * 100) / 100;
 }
 
-export function generateMultiplierTable(minesCount: number): number[] {
-  const safeTiles = 25 - minesCount;
+export function generateMultiplierTable(
+  minesCount: number,
+  totalTiles = 25
+): number[] {
+  const safeTiles = totalTiles - minesCount;
   const multipliers: number[] = [];
 
   for (let i = 1; i <= safeTiles; i++) {
-    multipliers.push(calculateMultiplier(minesCount, i));
+    multipliers.push(calculateMultiplier(minesCount, i, 0.04, totalTiles));
   }
 
   return multipliers;

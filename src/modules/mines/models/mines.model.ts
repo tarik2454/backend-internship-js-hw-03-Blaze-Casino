@@ -5,26 +5,33 @@ const minesGameSchema = new Schema<IMinesGame>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     betAmount: { type: Number, required: true },
+    gridSize: { type: Number, required: true, min: 5, max: 8 },
     minesCount: {
       type: Number,
       required: true,
       min: 1,
-      max: 24,
+      max: 63,
     },
     minePositions: {
       type: [Number],
       required: true,
       validate: {
-        validator: (arr: number[]) => arr.every((p) => p >= 0 && p <= 24),
-        message: "Mine positions must be between 0 and 24",
+        validator: function (this: IMinesGame, arr: number[]) {
+          const maxPos = this.gridSize * this.gridSize - 1;
+          return arr.every((p) => p >= 0 && p <= maxPos);
+        },
+        message: "Mine positions must be between 0 and gridSize² - 1",
       },
     },
     revealedPositions: {
       type: [Number],
       default: [],
       validate: {
-        validator: (arr: number[]) => arr.every((p) => p >= 0 && p <= 24),
-        message: "Revealed positions must be between 0 and 24",
+        validator: function (this: IMinesGame, arr: number[]) {
+          const maxPos = this.gridSize * this.gridSize - 1;
+          return arr.every((p) => p >= 0 && p <= maxPos);
+        },
+        message: "Revealed positions must be between 0 and gridSize² - 1",
       },
     },
     status: {
