@@ -957,12 +957,83 @@ Authorization: Bearer <accessToken>
 
 **GET** `/mines/history`
 
-Возвращает историю игр пользователя.
+Возвращает историю завершённых игр пользователя (статусы: won, lost, cashed_out). Сортировка по дате окончания (сначала новые).
 
 **Query параметры:**
 
-- `limit`: Максимальное количество записей (default: 10)
-- `offset`: Смещение (default: 0)
+- `limit`: Максимальное количество записей (default: 10, max: 10)
+- `offset`: Смещение для пагинации (default: 0)
+
+**Успешный ответ (200):**
+
+```json
+{
+  "games": [
+    {
+      "_id": "65b...",
+      "userId": "65a...",
+      "betAmount": 10,
+      "gridSize": 6,
+      "minesCount": 3,
+      "minePositions": [0, 12, 24],
+      "revealedPositions": [5, 7, 11, 13],
+      "status": "cashed_out",
+      "cashoutMultiplier": 1.55,
+      "winAmount": 15.5,
+      "serverSeed": "revealed_after_finish...",
+      "serverSeedHash": "hash...",
+      "clientSeed": "client_seed...",
+      "nonce": 25,
+      "createdAt": "2024-01-15T12:00:00.000Z",
+      "finishedAt": "2024-01-15T12:01:30.000Z"
+    },
+    {
+      "_id": "65b...",
+      "betAmount": 5,
+      "gridSize": 5,
+      "minesCount": 2,
+      "minePositions": [10, 22],
+      "revealedPositions": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24],
+      "status": "won",
+      "cashoutMultiplier": 2.45,
+      "winAmount": 12.25,
+      "createdAt": "2024-01-15T11:00:00.000Z",
+      "finishedAt": "2024-01-15T11:05:00.000Z"
+    },
+    {
+      "_id": "65b...",
+      "betAmount": 20,
+      "gridSize": 5,
+      "minesCount": 5,
+      "minePositions": [2, 8, 14, 18, 24],
+      "revealedPositions": [0, 1, 3, 4, 5],
+      "status": "lost",
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "finishedAt": "2024-01-15T10:02:00.000Z"
+    }
+  ]
+}
+```
+
+**Поля объекта игры:**
+
+- `_id` — ID игры
+- `userId` — ID пользователя
+- `betAmount` — сумма ставки
+- `gridSize` — размер сетки (5, 6, 7 или 8); количество ячеек = gridSize × gridSize
+- `minesCount` — количество мин в игре
+- `minePositions` — массив позиций мин (индексы 0 … gridSize² − 1)
+- `revealedPositions` — массив открытых безопасных позиций до окончания игры
+- `status` — исход: `won` (все безопасные открыты), `lost` (попал на мину), `cashed_out` (забрал выигрыш)
+- `cashoutMultiplier` — множитель на момент кешаута (если cashed_out или won)
+- `winAmount` — сумма выигрыша (если won или cashed_out); при lost отсутствует
+- `serverSeed`, `serverSeedHash`, `clientSeed`, `nonce` — данные для Provably Fair
+- `createdAt` — время создания игры
+- `finishedAt` — время окончания игры
+
+**Ошибки:**
+
+- `401` — не авторизован
 
 ---
 
