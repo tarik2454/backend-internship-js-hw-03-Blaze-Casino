@@ -29,7 +29,7 @@ export class PlinkoService {
 
   private static generateMultipliersForLines(
     lines: number,
-    risk: "low" | "medium" | "high"
+    risk: "low" | "medium" | "high",
   ): number[] {
     const base8 = this.MULTIPLIERS[8][risk];
     const base16 = this.MULTIPLIERS[16][risk];
@@ -65,14 +65,14 @@ export class PlinkoService {
         linesConfig[risk as keyof typeof linesConfig] ||
         this.generateMultipliersForLines(
           lines,
-          risk as "low" | "medium" | "high"
+          risk as "low" | "medium" | "high",
         )
       );
     }
     if (lines >= 8 && lines <= 16) {
       return this.generateMultipliersForLines(
         lines,
-        risk as "low" | "medium" | "high"
+        risk as "low" | "medium" | "high",
       );
     }
     return (
@@ -84,7 +84,7 @@ export class PlinkoService {
     serverSeed: string,
     clientSeed: string,
     nonce: number,
-    linesCount: number
+    linesCount: number,
   ): number[] {
     const path: number[] = [];
 
@@ -113,7 +113,7 @@ export class PlinkoService {
       lines: number;
     },
     ipAddress?: string,
-    userAgent?: string
+    userAgent?: string,
   ) {
     const { amount, balls, risk, lines } = data;
     const totalBet = amount * balls;
@@ -172,7 +172,7 @@ export class PlinkoService {
           session,
           new: true,
           runValidators: true,
-        }
+        },
       );
 
       if (!updatedUser) {
@@ -189,7 +189,7 @@ export class PlinkoService {
             linesCount: lines,
           },
         ],
-        { session }
+        { session },
       );
 
       const dropsResults = [];
@@ -203,7 +203,7 @@ export class PlinkoService {
           serverSeed,
           clientSeed,
           currentNonce,
-          lines
+          lines,
         );
         const slotIndex = this.calculateSlotIndex(path);
 
@@ -211,7 +211,7 @@ export class PlinkoService {
         if (!multipliers || multipliers.length === 0) {
           throw HttpError(
             400,
-            `Invalid configuration: Lines ${lines}, Risk ${risk}`
+            `Invalid configuration: Lines ${lines}, Risk ${risk}`,
           );
         }
 
@@ -219,7 +219,7 @@ export class PlinkoService {
         if (multiplier === undefined) {
           throw HttpError(
             500,
-            `Invalid slot index ${slotIndex} for lines ${lines}`
+            `Invalid slot index ${slotIndex} for lines ${lines}`,
           );
         }
 
@@ -248,7 +248,7 @@ export class PlinkoService {
             nonce: balls,
           },
         },
-        { session, new: true }
+        { session, new: true },
       );
 
       if (dropsResults.length > 0) {
@@ -256,6 +256,7 @@ export class PlinkoService {
         const dropDoc = drop[0];
         dropDoc.completed = true;
         dropDoc.completedAt = new Date();
+        dropDoc.status = totalWin >= totalBet ? "won" : "lost";
         await dropDoc.save({ session });
       }
 
@@ -264,7 +265,12 @@ export class PlinkoService {
       const isWin = totalWin > totalBet;
       const netWin = totalWin - totalBet;
       leaderboardService
-        .updateStats(new mongoose.Types.ObjectId(userId), totalBet, netWin, isWin)
+        .updateStats(
+          new mongoose.Types.ObjectId(userId),
+          totalBet,
+          netWin,
+          isWin,
+        )
         .catch((err) => {
           console.error("Leaderboard update failed", {
             userId: userId.toString(),
@@ -345,8 +351,9 @@ export class PlinkoService {
           ...drop.toObject(),
           totalWin,
           avgMultiplier: avgMultiplier.toFixed(2),
+          status: drop.status || (totalWin >= totalBet ? "won" : "lost"),
         };
-      })
+      }),
     );
 
     return { drops: dropsWithResults };

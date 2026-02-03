@@ -8,7 +8,7 @@ export interface IPlinkoDrop extends Document {
   linesCount: number;
   completed: boolean;
   completedAt?: Date;
+  status?: "won" | "lost";
   createdAt: Date;
   updatedAt: Date;
 }
-

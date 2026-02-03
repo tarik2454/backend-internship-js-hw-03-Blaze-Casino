@@ -14,11 +14,11 @@ const plinkoDropSchema = new Schema<IPlinkoDrop>(
     linesCount: { type: Number, required: true },
     completed: { type: Boolean, default: false },
     completedAt: { type: Date },
+    status: { type: String, enum: ["won", "lost"] },
   },
-  { timestamps: true, versionKey: false }
+  { timestamps: true, versionKey: false },
 );
 
 plinkoDropSchema.index({ userId: 1, createdAt: -1 });
 
 export const PlinkoDrop = model<IPlinkoDrop>("PlinkoDrop", plinkoDropSchema);
-

@@ -993,7 +993,10 @@ Authorization: Bearer <accessToken>
       "gridSize": 5,
       "minesCount": 2,
       "minePositions": [10, 22],
-      "revealedPositions": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24],
+      "revealedPositions": [
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+        21, 23, 24
+      ],
       "status": "won",
       "cashoutMultiplier": 2.45,
       "winAmount": 12.25,
@@ -1146,6 +1149,7 @@ Authorization: Bearer <accessToken>
       "linesCount": 16,
       "totalWin": 1.5,
       "avgMultiplier": "1.50",
+      "status": "won",
       "createdAt": "2024-01-01T00:00:00.000Z"
     }
   ]
@@ -1929,7 +1933,6 @@ Authorization: Bearer <accessToken>
 API использует систему из двух токенов:
 
 1. **Access Token** (JWT)
-
    - Срок жизни: 15 минут
    - Хранится только на клиенте
    - Используется для авторизации всех API запросов
@@ -1980,19 +1983,15 @@ API использует систему ограничения частоты з
 Все ограничения применяются **на пользователя** (per user) и действуют в течение **1 секунды** (sliding window):
 
 1. **Bets Limiter** - 10 запросов в секунду
-
    - Применяется к: `POST /api/plinko/drop`, `POST /api/mines/start`, `POST /api/crash/bet`
 
 2. **Case Opening Limiter** - 5 запросов в секунду
-
    - Применяется к: `POST /api/cases/:id/open`
 
 3. **Mines Reveal Limiter** - 20 запросов в секунду
-
    - Применяется к: `POST /api/mines/reveal`
 
 4. **General Limiter** - 100 запросов в секунду
-
    - Применяется к остальным эндпоинтам:
      - `GET /api/cases`, `GET /api/cases/:id`, `GET /api/cases/history`
      - `GET /api/mines/active`, `GET /api/mines/history`, `POST /api/mines/cashout`
